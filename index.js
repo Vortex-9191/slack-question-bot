@@ -500,9 +500,6 @@ app.post('/slack/slash-commands', async (req, res) => {
         return;
       }
       
-      // 即座に応答を返す（Slack 3秒タイムアウト対策）
-      res.send('');
-      
       try {
         // 質問入力モーダルを表示
         const modalResult = await slackClient.views.open({
@@ -613,8 +610,15 @@ app.post('/slack/slash-commands', async (req, res) => {
         }
       });
       
-      return;  // 応答は既に送信済み
+      console.log('Modal open result:', modalResult);
+      res.send(''); // モーダル表示後に空のレスポンスを返す
+      return;
+    } catch (error) {
+      console.error('Error opening modal:', error);
+      res.send('⚠️ モーダルを開く際にエラーが発生しました。');
+      return;
     }
+  }
     
     // /question-stats コマンド
     if (command === '/question-stats') {
@@ -633,7 +637,7 @@ app.post('/slack/slash-commands', async (req, res) => {
     }
     
     // デフォルトのヘルプメッセージ
-    const helpMessage = `利用可能なコマンド:\n/question - 質問を投稿（モーダルが開きます）\n/question-stats - 質問の統計を表示`;
+    const helpMessage = `利用可能なコマンド:\n/question - 質問を投稿\n/question-stats - 質問の統計を表示`;
     res.send(helpMessage);
     
   } catch (error) {
