@@ -6,8 +6,19 @@ const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
 
 const app = express();
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
+
+// Slack署名検証のためにraw bodyを保存
+app.use(bodyParser.urlencoded({
+  extended: true,
+  verify: (req, res, buf) => {
+    req.rawBody = buf.toString('utf8');
+  }
+}));
+app.use(bodyParser.json({
+  verify: (req, res, buf) => {
+    req.rawBody = buf.toString('utf8');
+  }
+}));
 
 const slackClient = new WebClient(process.env.SLACK_BOT_TOKEN);
 const adminChannelId = process.env.ADMIN_CHANNEL_ID;
@@ -39,15 +50,17 @@ const QUESTION_TYPES = {
 function verifySlackRequest(req) {
   const signature = req.headers['x-slack-signature'];
   const timestamp = req.headers['x-slack-request-timestamp'];
-  const body = JSON.stringify(req.body);
+  const body = req.rawBody || '';
 
   if (!signature || !timestamp) {
+    console.error('Missing signature or timestamp');
     return false;
   }
 
   // タイムスタンプが5分以内かチェック
   const time = Math.floor(new Date().getTime() / 1000);
   if (Math.abs(time - timestamp) > 300) {
+    console.error('Request timestamp too old');
     return false;
   }
 
@@ -57,10 +70,16 @@ function verifySlackRequest(req) {
     .update(sigBasestring, 'utf8')
     .digest('hex');
 
-  return crypto.timingSafeEqual(
+  const isValid = crypto.timingSafeEqual(
     Buffer.from(mySignature, 'utf8'),
     Buffer.from(signature, 'utf8')
   );
+
+  if (!isValid) {
+    console.error('Invalid signature');
+  }
+
+  return isValid;
 }
 
 // ヘルスチェック
@@ -70,12 +89,16 @@ app.get('/', (req, res) => {
 
 // スラッシュコマンドの処理
 app.post('/slack/commands', async (req, res) => {
+  console.log('Received slash command request');
+
   // Slack署名を検証
   if (!verifySlackRequest(req)) {
+    console.error('Failed to verify Slack request');
     return res.status(401).send('Unauthorized');
   }
 
   const { command, trigger_id, user_id } = req.body;
+  console.log(`Command: ${command}, User: ${user_id}`);
 
   // すぐに200 OKを返す
   res.status(200).send();
