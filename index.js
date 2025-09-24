@@ -389,6 +389,70 @@ app.post('/slack/slash-commands', async (req, res) => {
   const { command, text, user_id, channel_id, trigger_id } = req.body;
   
   try {
+    // /question コマンド - 質問を投稿
+    if (command === '/question') {
+      if (!text || text.trim() === '') {
+        res.send('📝 使い方: `/question あなたの質問内容`');
+        return;
+      }
+      
+      // 質問を保存
+      const questionId = uuidv4();
+      const question = {
+        id: questionId,
+        userId: user_id,
+        text: text.trim(),
+        channelId: channel_id,
+        messageTs: Date.now().toString(),
+        status: 'pending'
+      };
+      
+      await saveQuestion(question);
+      
+      // ユーザーに確認メッセージ
+      res.send(`✅ 質問を受け付けました！\n\n*あなたの質問:*\n> ${text}\n\n担当者から回答があり次第、DMでお知らせします。\n\n質問ID: \`${questionId}\``);
+      
+      // 管理チャンネルに通知（設定されている場合）
+      if (adminChannelId && adminChannelId !== 'C-your-admin-channel-id') {
+        try {
+          const userInfo = await slackClient.users.info({ user: user_id });
+          await slackClient.chat.postMessage({
+            channel: adminChannelId,
+            text: `🆕 新しい質問が届きました`,
+            blocks: [
+              {
+                type: 'section',
+                text: {
+                  type: 'mrkdwn',
+                  text: `🆕 *新しい質問が届きました*`
+                }
+              },
+              {
+                type: 'section',
+                text: {
+                  type: 'mrkdwn',
+                  text: `*質問者:* <@${user_id}> (${userInfo.user.real_name || 'Unknown'})\n*質問:*\n> ${text}`
+                }
+              },
+              {
+                type: 'context',
+                elements: [
+                  {
+                    type: 'mrkdwn',
+                    text: `質問ID: \`${questionId}\` | 投稿元: <#${channel_id}>`
+                  }
+                ]
+              }
+            ]
+          });
+        } catch (error) {
+          console.log('管理チャンネルへの通知をスキップ（チャンネル未設定または無効）');
+        }
+      }
+      
+      return;
+    }
+    
     // /question-stats コマンド
     if (command === '/question-stats') {
       // トークンチェック
@@ -406,7 +470,7 @@ app.post('/slack/slash-commands', async (req, res) => {
     }
     
     // デフォルトのヘルプメッセージ
-    const helpMessage = `利用可能なコマンド:\n/question-stats - 質問の統計を表示`;
+    const helpMessage = `利用可能なコマンド:\n/question [質問内容] - 質問を投稿\n/question-stats - 質問の統計を表示`;
     res.send(helpMessage);
     
   } catch (error) {
