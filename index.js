@@ -50,9 +50,13 @@ app.post('/slack/events', async (req, res) => {
       return res.send('');
     }
 
-    // メンションまたはDMでの質問受付
+    // メンション、DM、または許可されたチャンネルでの質問受付
+    const allowedChannels = process.env.ALLOWED_CHANNELS?.split(',') || [];
+    const isAllowedChannel = allowedChannels.includes(event.channel);
+    
     if (event.type === 'app_mention' || 
-        (event.type === 'message' && event.channel_type === 'im')) {
+        (event.type === 'message' && event.channel_type === 'im') ||
+        (event.type === 'message' && isAllowedChannel)) {
       
       try {
         // 質問を保存
