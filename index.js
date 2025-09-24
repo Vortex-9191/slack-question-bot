@@ -487,12 +487,15 @@ app.post('/slack/events', async (req, res) => {
 // ==========================
 app.post('/slack/slash-commands', async (req, res) => {
   console.log('Slash command received:', req.body.command);
+  console.log('Request body:', JSON.stringify(req.body));
   const { command, text, user_id, channel_id, trigger_id } = req.body;
+  
+  console.log(`Checking command: "${command}" === "/question"? ${command === '/question'}`);
   
   try {
     // /question コマンド - 質問を投稿（モーダル表示）
     if (command === '/question') {
-      console.log('Question command received, trigger_id:', trigger_id);
+      console.log('Question command matched! trigger_id:', trigger_id);
       
       // トークンチェック
       if (!process.env.SLACK_BOT_TOKEN || process.env.SLACK_BOT_TOKEN === 'xoxb-your-bot-token-here') {
