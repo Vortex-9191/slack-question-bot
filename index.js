@@ -624,7 +624,7 @@ app.post('/slack/slash-commands', async (req, res) => {
     }
     
     // デフォルトのヘルプメッセージ
-    const helpMessage = `利用可能なコマンド:\n/question [質問内容] - 質問を投稿\n/question-stats - 質問の統計を表示`;
+    const helpMessage = `利用可能なコマンド:\n/question - 質問を投稿（モーダルが開きます）\n/question-stats - 質問の統計を表示`;
     res.send(helpMessage);
     
   } catch (error) {
