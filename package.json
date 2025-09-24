@@ -4,7 +4,7 @@
   "description": "Slackで質問を管理する自由記述チャットボット",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "node working-bot.js",
     "start:minimal": "node minimal-webhook.js",
     "start:full": "node simple-webhook-server.js",
     "start:bolt": "node simple-question-bot-webhook.js",
