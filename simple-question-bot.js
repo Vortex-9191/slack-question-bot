@@ -131,7 +131,7 @@ app.command('/question', async ({ command, ack, client }) => {
             block_id: 'question_content',
             label: {
               type: 'plain_text',
-              text: '質問事項'
+              text: '質問内容'
             },
             element: {
               type: 'plain_text_input',
@@ -139,7 +139,7 @@ app.command('/question', async ({ command, ack, client }) => {
               multiline: true,
               placeholder: {
                 type: 'plain_text',
-                text: '質問内容を自由に記述してください'
+                text: '質問を入力してください'
               }
             }
           }
