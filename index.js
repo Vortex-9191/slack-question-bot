@@ -385,23 +385,28 @@ app.post('/slack/events', async (req, res) => {
 // スラッシュコマンド
 // ==========================
 app.post('/slack/slash-commands', async (req, res) => {
+  console.log('Slash command received:', req.body.command);
   const { command, text, user_id, channel_id, trigger_id } = req.body;
   
-  // /question-stats コマンド
-  if (command === '/question-stats') {
-    const unanswered = await getUnansweredQuestions();
-    const stats = `📊 *質問統計*\n未回答: ${unanswered.length}件`;
+  try {
+    // /question-stats コマンド
+    if (command === '/question-stats') {
+      const unanswered = await getUnansweredQuestions();
+      const stats = `📊 *質問統計*\n未回答: ${unanswered.length}件`;
+      
+      // 即座にレスポンスを返す（3秒以内のSlackタイムアウト対策）
+      res.send(stats);
+      return;
+    }
     
-    await slackClient.chat.postEphemeral({
-      channel: channel_id,
-      user: user_id,
-      text: stats
-    });
+    // デフォルトのヘルプメッセージ
+    const helpMessage = `利用可能なコマンド:\n/question-stats - 質問の統計を表示`;
+    res.send(helpMessage);
     
-    return res.send('');
+  } catch (error) {
+    console.error('Slash command error:', error);
+    res.status(500).send('コマンド処理中にエラーが発生しました');
   }
-  
-  res.send('コマンドが認識されませんでした');
 });
 
 // ==========================
