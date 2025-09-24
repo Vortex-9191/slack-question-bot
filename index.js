@@ -503,112 +503,112 @@ app.post('/slack/slash-commands', async (req, res) => {
       try {
         // 質問入力モーダルを表示
         const modalResult = await slackClient.views.open({
-        trigger_id: trigger_id,
-        view: {
-          type: 'modal',
-          callback_id: 'question_modal',
-          title: {
-            type: 'plain_text',
-            text: '質問を投稿'
-          },
-          submit: {
-            type: 'plain_text',
-            text: '送信'
-          },
-          close: {
-            type: 'plain_text',
-            text: 'キャンセル'
-          },
-          blocks: [
-            {
-              type: 'input',
-              block_id: 'category_block',
-              label: {
-                type: 'plain_text',
-                text: '質問種別'
-              },
-              element: {
-                type: 'static_select',
-                action_id: 'category_select',
-                placeholder: {
-                  type: 'plain_text',
-                  text: '種別を選択してください'
-                },
-                options: [
-                  {
-                    text: { type: 'plain_text', text: '会計確認' },
-                    value: 'accounting'
-                  },
-                  {
-                    text: { type: 'plain_text', text: '疑義照会' },
-                    value: 'inquiry'
-                  },
-                  {
-                    text: { type: 'plain_text', text: 'CS確認' },
-                    value: 'cs'
-                  },
-                  {
-                    text: { type: 'plain_text', text: 'その他' },
-                    value: 'other'
-                  }
-                ]
-              }
+          trigger_id: trigger_id,
+          view: {
+            type: 'modal',
+            callback_id: 'question_modal',
+            title: {
+              type: 'plain_text',
+              text: '質問を投稿'
             },
-            {
-              type: 'input',
-              block_id: 'question_block',
-              label: {
-                type: 'plain_text',
-                text: '質問内容'
-              },
-              element: {
-                type: 'plain_text_input',
-                action_id: 'question_input',
-                multiline: true,
-                placeholder: {
+            submit: {
+              type: 'plain_text',
+              text: '送信'
+            },
+            close: {
+              type: 'plain_text',
+              text: 'キャンセル'
+            },
+            blocks: [
+              {
+                type: 'input',
+                block_id: 'category_block',
+                label: {
                   type: 'plain_text',
-                  text: '質問を入力してください'
+                  text: '質問種別'
+                },
+                element: {
+                  type: 'static_select',
+                  action_id: 'category_select',
+                  placeholder: {
+                    type: 'plain_text',
+                    text: '種別を選択してください'
+                  },
+                  options: [
+                    {
+                      text: { type: 'plain_text', text: '会計確認' },
+                      value: 'accounting'
+                    },
+                    {
+                      text: { type: 'plain_text', text: '疑義照会' },
+                      value: 'inquiry'
+                    },
+                    {
+                      text: { type: 'plain_text', text: 'CS確認' },
+                      value: 'cs'
+                    },
+                    {
+                      text: { type: 'plain_text', text: 'その他' },
+                      value: 'other'
+                    }
+                  ]
                 }
-              }
-            },
-            {
-              type: 'input',
-              block_id: 'urgency_block',
-              label: {
-                type: 'plain_text',
-                text: '緊急度'
               },
-              optional: true,
-              element: {
-                type: 'radio_buttons',
-                action_id: 'urgency_select',
-                initial_option: {
-                  text: { type: 'plain_text', text: '通常' },
-                  value: 'normal'
+              {
+                type: 'input',
+                block_id: 'question_block',
+                label: {
+                  type: 'plain_text',
+                  text: '質問内容'
                 },
-                options: [
-                  {
-                    text: { type: 'plain_text', text: '緊急' },
-                    value: 'high'
-                  },
-                  {
+                element: {
+                  type: 'plain_text_input',
+                  action_id: 'question_input',
+                  multiline: true,
+                  placeholder: {
+                    type: 'plain_text',
+                    text: '質問を入力してください'
+                  }
+                }
+              },
+              {
+                type: 'input',
+                block_id: 'urgency_block',
+                label: {
+                  type: 'plain_text',
+                  text: '緊急度'
+                },
+                optional: true,
+                element: {
+                  type: 'radio_buttons',
+                  action_id: 'urgency_select',
+                  initial_option: {
                     text: { type: 'plain_text', text: '通常' },
                     value: 'normal'
                   },
-                  {
-                    text: { type: 'plain_text', text: '低' },
-                    value: 'low'
-                  }
-                ]
+                  options: [
+                    {
+                      text: { type: 'plain_text', text: '緊急' },
+                      value: 'high'
+                    },
+                    {
+                      text: { type: 'plain_text', text: '通常' },
+                      value: 'normal'
+                    },
+                    {
+                      text: { type: 'plain_text', text: '低' },
+                      value: 'low'
+                    }
+                  ]
+                }
               }
-            }
-          ],
-          private_metadata: JSON.stringify({ 
-            channel_id: channel_id,
-            user_id: user_id 
-          })
-        }
-      });
+            ],
+            private_metadata: JSON.stringify({ 
+              channel_id: channel_id,
+              user_id: user_id 
+            })
+          }
+        });
       
       console.log('Modal open result:', modalResult);
       res.send(''); // モーダル表示後に空のレスポンスを返す
