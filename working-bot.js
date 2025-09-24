@@ -70,14 +70,31 @@ app.post('/slack/slash-commands', async (req, res) => {
 
 // インタラクティブエンドポイント
 app.post('/slack/interactive', async (req, res) => {
-  const payload = JSON.parse(req.body.payload);
-  console.log('Interactive event type:', payload.type);
+  try {
+    const payload = JSON.parse(req.body.payload);
+    console.log('Interactive event type:', payload.type);
 
-  // すぐに200 OKを返す
-  res.status(200).send();
+    if (payload.type === 'view_submission') {
+      // view_submissionの場合は特別な応答が必要
+      res.status(200).json({
+        response_action: 'clear'
+      });
 
-  if (payload.type === 'view_submission') {
-    console.log('Form submitted successfully');
+      // 送信成功メッセージを送る
+      const userId = payload.user.id;
+      await slackClient.chat.postMessage({
+        channel: userId,
+        text: '✅ 質問を受け付けました！'
+      });
+
+      console.log('Form submitted successfully');
+    } else {
+      // その他のインタラクションは200 OKを返す
+      res.status(200).send();
+    }
+  } catch (error) {
+    console.error('Interactive endpoint error:', error);
+    res.status(500).send('Internal server error');
   }
 });
 
