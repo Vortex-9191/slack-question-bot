@@ -300,7 +300,108 @@ app.post('/slack/events', async (req, res) => {
       }
     }
     
-    // モーダル送信処理
+    // 質問モーダル送信処理
+    if (payload.type === 'view_submission' && payload.view.callback_id === 'question_modal') {
+      const metadata = JSON.parse(payload.view.private_metadata);
+      const state = payload.view.state.values;
+      const category = state.category_block.category_select.selected_option.text.text;
+      const categoryValue = state.category_block.category_select.selected_option.value;
+      const questionText = state.question_block.question_input.value;
+      const urgency = state.urgency_block?.urgency_select?.selected_option?.value || 'normal';
+      
+      // 質問を保存
+      const questionId = uuidv4();
+      const question = {
+        id: questionId,
+        userId: metadata.user_id,
+        text: questionText,
+        channelId: metadata.channel_id,
+        messageTs: Date.now().toString(),
+        status: 'pending',
+        category: categoryValue,
+        urgency: urgency
+      };
+      
+      await saveQuestion(question);
+      
+      // 管理チャンネルに通知
+      if (adminChannelId && adminChannelId !== 'C-your-admin-channel-id') {
+        try {
+          const userInfo = await slackClient.users.info({ user: metadata.user_id });
+          const urgencyEmoji = urgency === 'high' ? '🔴' : urgency === 'low' ? '🔵' : '🟡';
+          
+          await slackClient.chat.postMessage({
+            channel: adminChannelId,
+            text: `🆕 新しい質問が届きました`,
+            blocks: [
+              {
+                type: 'section',
+                text: {
+                  type: 'mrkdwn',
+                  text: `🆕 *新しい質問が届きました*`
+                }
+              },
+              {
+                type: 'section',
+                text: {
+                  type: 'mrkdwn',
+                  text: `*質問種別:* ${category} ${urgencyEmoji}\n*質問者:* <@${metadata.user_id}> (${userInfo.user.real_name || 'Unknown'})\n*質問:*\n> ${questionText}`
+                }
+              },
+              {
+                type: 'actions',
+                elements: [
+                  {
+                    type: 'button',
+                    text: {
+                      type: 'plain_text',
+                      text: '📝 回答する'
+                    },
+                    style: 'primary',
+                    action_id: 'answer_question',
+                    value: JSON.stringify({
+                      questionId,
+                      userId: metadata.user_id,
+                      channelId: metadata.channel_id,
+                      messageTs: question.messageTs
+                    })
+                  }
+                ]
+              },
+              {
+                type: 'context',
+                elements: [
+                  {
+                    type: 'mrkdwn',
+                    text: `質問ID: \`${questionId}\` | 種別: ${category} | 緊急度: ${urgency}`
+                  }
+                ]
+              }
+            ]
+          });
+        } catch (error) {
+          console.log('管理チャンネルへの通知エラー:', error);
+        }
+      }
+      
+      // ユーザーにDMで確認
+      try {
+        const dmChannel = await slackClient.conversations.open({
+          users: metadata.user_id
+        });
+        
+        await slackClient.chat.postMessage({
+          channel: dmChannel.channel.id,
+          text: `✅ 質問を受け付けました！\n\n*質問種別:* ${category}\n*質問内容:*\n> ${questionText}\n\n担当者から回答があり次第、こちらでお知らせします。\n\n質問ID: \`${questionId}\``
+        });
+      } catch (error) {
+        console.log('DM送信エラー:', error);
+      }
+      
+      return res.json({ response_action: 'clear' });
+    }
+    
+    // 回答モーダル送信処理
     if (payload.type === 'view_submission' && payload.view.callback_id === 'answer_modal') {
       const metadata = JSON.parse(payload.view.private_metadata);
       const state = payload.view.state.values;
@@ -389,67 +490,119 @@ app.post('/slack/slash-commands', async (req, res) => {
   const { command, text, user_id, channel_id, trigger_id } = req.body;
   
   try {
-    // /question コマンド - 質問を投稿
+    // /question コマンド - 質問を投稿（モーダル表示）
     if (command === '/question') {
-      if (!text || text.trim() === '') {
-        res.send('📝 使い方: `/question あなたの質問内容`');
-        return;
-      }
-      
-      // 質問を保存
-      const questionId = uuidv4();
-      const question = {
-        id: questionId,
-        userId: user_id,
-        text: text.trim(),
-        channelId: channel_id,
-        messageTs: Date.now().toString(),
-        status: 'pending'
-      };
-      
-      await saveQuestion(question);
-      
-      // ユーザーに確認メッセージ
-      res.send(`✅ 質問を受け付けました！\n\n*あなたの質問:*\n> ${text}\n\n担当者から回答があり次第、DMでお知らせします。\n\n質問ID: \`${questionId}\``);
-      
-      // 管理チャンネルに通知（設定されている場合）
-      if (adminChannelId && adminChannelId !== 'C-your-admin-channel-id') {
-        try {
-          const userInfo = await slackClient.users.info({ user: user_id });
-          await slackClient.chat.postMessage({
-            channel: adminChannelId,
-            text: `🆕 新しい質問が届きました`,
-            blocks: [
-              {
-                type: 'section',
-                text: {
-                  type: 'mrkdwn',
-                  text: `🆕 *新しい質問が届きました*`
-                }
+      // 質問入力モーダルを表示
+      await slackClient.views.open({
+        trigger_id: trigger_id,
+        view: {
+          type: 'modal',
+          callback_id: 'question_modal',
+          title: {
+            type: 'plain_text',
+            text: '質問を投稿'
+          },
+          submit: {
+            type: 'plain_text',
+            text: '送信'
+          },
+          close: {
+            type: 'plain_text',
+            text: 'キャンセル'
+          },
+          blocks: [
+            {
+              type: 'input',
+              block_id: 'category_block',
+              label: {
+                type: 'plain_text',
+                text: '質問種別'
               },
-              {
-                type: 'section',
-                text: {
-                  type: 'mrkdwn',
-                  text: `*質問者:* <@${user_id}> (${userInfo.user.real_name || 'Unknown'})\n*質問:*\n> ${text}`
-                }
-              },
-              {
-                type: 'context',
-                elements: [
+              element: {
+                type: 'static_select',
+                action_id: 'category_select',
+                placeholder: {
+                  type: 'plain_text',
+                  text: '種別を選択してください'
+                },
+                options: [
                   {
-                    type: 'mrkdwn',
-                    text: `質問ID: \`${questionId}\` | 投稿元: <#${channel_id}>`
+                    text: { type: 'plain_text', text: '会計確認' },
+                    value: 'accounting'
+                  },
+                  {
+                    text: { type: 'plain_text', text: '疑義照会' },
+                    value: 'inquiry'
+                  },
+                  {
+                    text: { type: 'plain_text', text: 'CS確認' },
+                    value: 'cs'
+                  },
+                  {
+                    text: { type: 'plain_text', text: 'その他' },
+                    value: 'other'
                   }
                 ]
               }
-            ]
-          });
-        } catch (error) {
-          console.log('管理チャンネルへの通知をスキップ（チャンネル未設定または無効）');
+            },
+            {
+              type: 'input',
+              block_id: 'question_block',
+              label: {
+                type: 'plain_text',
+                text: '質問内容'
+              },
+              element: {
+                type: 'plain_text_input',
+                action_id: 'question_input',
+                multiline: true,
+                placeholder: {
+                  type: 'plain_text',
+                  text: '質問を入力してください'
+                }
+              }
+            },
+            {
+              type: 'input',
+              block_id: 'urgency_block',
+              label: {
+                type: 'plain_text',
+                text: '緊急度'
+              },
+              optional: true,
+              element: {
+                type: 'radio_buttons',
+                action_id: 'urgency_select',
+                initial_option: {
+                  text: { type: 'plain_text', text: '通常' },
+                  value: 'normal'
+                },
+                options: [
+                  {
+                    text: { type: 'plain_text', text: '緊急' },
+                    value: 'high'
+                  },
+                  {
+                    text: { type: 'plain_text', text: '通常' },
+                    value: 'normal'
+                  },
+                  {
+                    text: { type: 'plain_text', text: '低' },
+                    value: 'low'
+                  }
+                ]
+              }
+            }
+          ],
+          private_metadata: JSON.stringify({ 
+            channel_id: channel_id,
+            user_id: user_id 
+          })
         }
-      }
+      });
       
+      // 即座に応答を返す（Slack 3秒タイムアウト対策）
+      res.send('');
       return;
     }
     
