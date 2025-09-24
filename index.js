@@ -36,9 +36,12 @@ app.get('/', (req, res) => {
 // Slack Events API
 // ==========================
 app.post('/slack/events', async (req, res) => {
+  console.log('Received event:', req.body.type);
+  
   // URL Verification
   if (req.body.type === 'url_verification') {
-    return res.send(req.body.challenge);
+    console.log('URL verification challenge received');
+    return res.status(200).send(req.body.challenge);
   }
 
   // Event処理
