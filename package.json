@@ -1,0 +1,32 @@
+{
+  "name": "slack-question-bot",
+  "version": "1.0.0",
+  "description": "Slackで質問を管理する自由記述チャットボット",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "slack",
+    "bot",
+    "question",
+    "chat"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@slack/web-api": "^6.9.0",
+    "@slack/events-api": "^3.0.1",
+    "express": "^4.18.2",
+    "body-parser": "^1.20.2",
+    "dotenv": "^16.3.1",
+    "sqlite3": "^5.1.6",
+    "node-cron": "^3.0.3",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
