@@ -492,6 +492,9 @@ app.post('/slack/slash-commands', async (req, res) => {
   try {
     // /question コマンド - 質問を投稿（モーダル表示）
     if (command === '/question') {
+      // 即座に応答を返す（Slack 3秒タイムアウト対策）
+      res.send('');
+      
       // 質問入力モーダルを表示
       await slackClient.views.open({
         trigger_id: trigger_id,
@@ -601,9 +604,7 @@ app.post('/slack/slash-commands', async (req, res) => {
         }
       });
       
-      // 即座に応答を返す（Slack 3秒タイムアウト対策）
-      res.send('');
-      return;
+      return;  // 応答は既に送信済み
     }
     
     // /question-stats コマンド
