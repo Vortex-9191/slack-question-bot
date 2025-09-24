@@ -9,7 +9,8 @@ const {
   getQuestion,
   updateQuestionStatus,
   saveAnswer,
-  saveApproval
+  saveApproval,
+  saveFeedback
 } = require('./data-storage-enhanced');
 
 // Express Receiverを使用（Webhook用）
@@ -32,12 +33,9 @@ initDatabase();
 
 // 質問タイプの定義
 const QUESTION_TYPES = {
-  technical: '技術的な質問',
-  business: 'ビジネス関連',
-  process: 'プロセス・手順',
-  general: '一般的な質問',
-  urgent: '緊急の質問',
-  other: 'その他'
+  accounting: '会計',
+  cs: 'CS',
+  inquiry: '疑義紹介'
 };
 
 // ヘルスチェックエンドポイント
