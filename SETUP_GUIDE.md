@@ -57,7 +57,15 @@ git push -u origin main
 ### Step 5: Slash Commandsの設定
 1. 左メニュー「Slash Commands」
 2. 「Create New Command」
-3. コマンド追加:
+3. 以下のコマンドを追加:
+
+**コマンド1: /question**
+   - Command: `/question`
+   - Request URL: `https://your-domain.com/slack/slash-commands`
+   - Short Description: 質問を投稿
+   - Usage Hint: (空欄でOK)
+
+**コマンド2: /question-stats**
    - Command: `/question-stats`
    - Request URL: `https://your-domain.com/slack/slash-commands`
    - Short Description: 質問統計を表示

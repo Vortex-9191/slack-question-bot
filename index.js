@@ -492,11 +492,20 @@ app.post('/slack/slash-commands', async (req, res) => {
   try {
     // /question コマンド - 質問を投稿（モーダル表示）
     if (command === '/question') {
+      console.log('Question command received, trigger_id:', trigger_id);
+      
+      // トークンチェック
+      if (!process.env.SLACK_BOT_TOKEN || process.env.SLACK_BOT_TOKEN === 'xoxb-your-bot-token-here') {
+        res.send('⚠️ ボットが正しく設定されていません。管理者に連絡してください。');
+        return;
+      }
+      
       // 即座に応答を返す（Slack 3秒タイムアウト対策）
       res.send('');
       
-      // 質問入力モーダルを表示
-      await slackClient.views.open({
+      try {
+        // 質問入力モーダルを表示
+        const modalResult = await slackClient.views.open({
         trigger_id: trigger_id,
         view: {
           type: 'modal',
