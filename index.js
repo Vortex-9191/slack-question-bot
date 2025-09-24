@@ -391,6 +391,12 @@ app.post('/slack/slash-commands', async (req, res) => {
   try {
     // /question-stats コマンド
     if (command === '/question-stats') {
+      // トークンチェック
+      if (!process.env.SLACK_BOT_TOKEN || process.env.SLACK_BOT_TOKEN === 'xoxb-your-bot-token-here') {
+        res.send('⚠️ ボットトークンが設定されていません。管理者に連絡してください。');
+        return;
+      }
+      
       const unanswered = await getUnansweredQuestions();
       const stats = `📊 *質問統計*\n未回答: ${unanswered.length}件`;
       
