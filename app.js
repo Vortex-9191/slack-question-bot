@@ -347,6 +347,185 @@ app.post('/slack/interactive', async (req, res) => {
     console.log('イベントタイプ:', payload.type);
     console.log('ユーザー:', payload.user.id);
 
+    // ボタンアクションの処理
+    if (payload.type === 'block_actions') {
+      const action = payload.actions[0];
+
+      // 修正・追記ボタン
+      if (action.action_id === 'modify_question') {
+        const data = JSON.parse(action.value);
+        console.log('修正・追記モーダルを開く...');
+
+        try {
+          await slackClient.views.open({
+            trigger_id: payload.trigger_id,
+            view: {
+              type: 'modal',
+              callback_id: 'modify_question_submission',
+              private_metadata: action.value,
+              title: {
+                type: 'plain_text',
+                text: '質問を修正・追記'
+              },
+              submit: {
+                type: 'plain_text',
+                text: '送信'
+              },
+              close: {
+                type: 'plain_text',
+                text: 'キャンセル'
+              },
+              blocks: [
+                {
+                  type: 'section',
+                  text: {
+                    type: 'mrkdwn',
+                    text: `*患者ID:* ${data.patientId}\n*質問タイプ:* ${data.questionType}`
+                  }
+                },
+                {
+                  type: 'divider'
+                },
+                {
+                  type: 'input',
+                  block_id: 'modified_content_block',
+                  label: {
+                    type: 'plain_text',
+                    text: '修正・追記内容'
+                  },
+                  element: {
+                    type: 'plain_text_input',
+                    action_id: 'modified_content',
+                    multiline: true,
+                    initial_value: data.questionContent,
+                    placeholder: {
+                      type: 'plain_text',
+                      text: '質問内容を修正または追記してください...'
+                    }
+                  }
+                }
+              ]
+            }
+          });
+
+          return res.status(200).send('');
+        } catch (error) {
+          console.error('❌ 修正モーダルエラー:', error);
+          return res.status(200).send('');
+        }
+      }
+
+      // 承認ボタン
+      if (action.action_id === 'approve_question') {
+        const data = JSON.parse(action.value);
+        console.log('質問を承認...');
+
+        try {
+          // 承認メッセージを質問者に送信
+          await slackClient.chat.postMessage({
+            channel: data.userId,
+            text: '医師が質問を確認しました',
+            blocks: [
+              {
+                type: 'header',
+                text: {
+                  type: 'plain_text',
+                  text: '医師が質問を確認しました'
+                }
+              },
+              {
+                type: 'section',
+                text: {
+                  type: 'mrkdwn',
+                  text: `${data.doctorName}先生（ID: ${data.doctorId}）が質問を確認しました。\n回答をお待ちください。`
+                }
+              }
+            ]
+          });
+
+          // ボタンにリアクションを追加
+          await slackClient.reactions.add({
+            name: 'white_check_mark',
+            channel: payload.channel.id,
+            timestamp: payload.message.ts
+          });
+
+          return res.status(200).send('');
+        } catch (error) {
+          console.error('❌ 承認エラー:', error);
+          return res.status(200).send('');
+        }
+      }
+
+      return res.status(200).send('');
+    }
+
+    // 修正モーダルの送信処理
+    if (payload.type === 'view_submission' && payload.view.callback_id === 'modify_question_submission') {
+      const originalData = JSON.parse(payload.view.private_metadata);
+      const modifiedContent = payload.view.state.values.modified_content_block.modified_content.value;
+
+      console.log('修正内容を処理中...');
+
+      // モーダルを閉じる
+      res.status(200).json({
+        response_action: 'clear'
+      });
+
+      try {
+        // 質問者に修正通知を送信
+        await slackClient.chat.postMessage({
+          channel: originalData.userId,
+          text: '医師から修正・追記がありました',
+          blocks: [
+            {
+              type: 'header',
+              text: {
+                type: 'plain_text',
+                text: '医師から修正・追記がありました'
+              }
+            },
+            {
+              type: 'section',
+              text: {
+                type: 'mrkdwn',
+                text: `*元の質問:*\n${originalData.questionContent}`
+              }
+            },
+            {
+              type: 'section',
+              text: {
+                type: 'mrkdwn',
+                text: `*修正後の内容:*\n${modifiedContent}`
+              }
+            },
+            {
+              type: 'context',
+              elements: [
+                {
+                  type: 'mrkdwn',
+                  text: `修正者: ${originalData.doctorName}先生 | ${new Date().toLocaleString('ja-JP')}`
+                }
+              ]
+            }
+          ]
+        });
+
+        // 医師チャンネルのメッセージにリアクション
+        if (originalData.doctorChannelId) {
+          await slackClient.reactions.add({
+            name: 'pencil2',
+            channel: originalData.doctorChannelId,
+            timestamp: payload.message?.ts || ''
+          });
+        }
+      } catch (error) {
+        console.error('❌ 修正通知エラー:', error);
+      }
+
+      return;
+    }
+
     if (payload.type === 'view_submission') {
       console.log('📋 フォーム送信処理...');
 
@@ -509,7 +688,7 @@ app.post('/slack/interactive', async (req, res) => {
                 type: 'header',
                 text: {
                   type: 'plain_text',
-                  text: '📩 質問が届きました'
+                  text: '質問が届きました'
                 }
               },
               {
@@ -548,6 +727,49 @@ app.post('/slack/interactive', async (req, res) => {
                   type: 'mrkdwn',
                   text: '回答をお願いします。'
                 }
+              },
+              {
+                type: 'actions',
+                elements: [
+                  {
+                    type: 'button',
+                    text: {
+                      type: 'plain_text',
+                      text: '修正・追記する'
+                    },
+                    style: 'danger',
+                    action_id: 'modify_question',
+                    value: JSON.stringify({
+                      questionId: `${formData.userId}_${Date.now()}`,
+                      patientId: formData.patientId,
+                      questionType: formData.questionType,
+                      doctorName: formData.doctorName,
+                      doctorId: formData.doctorId,
+                      questionContent: formData.questionContent,
+                      userId: formData.userId,
+                      doctorChannelId: doctorChannel.id
+                    })
+                  },
+                  {
+                    type: 'button',
+                    text: {
+                      type: 'plain_text',
+                      text: '承認する'
+                    },
+                    style: 'primary',
+                    action_id: 'approve_question',
+                    value: JSON.stringify({
+                      questionId: `${formData.userId}_${Date.now()}`,
+                      patientId: formData.patientId,
+                      questionType: formData.questionType,
+                      doctorName: formData.doctorName,
+                      doctorId: formData.doctorId,
+                      questionContent: formData.questionContent,
+                      userId: formData.userId,
+                      doctorChannelId: doctorChannel.id
+                    })
+                  }
+                ]
               }
             ]
           });
