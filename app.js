@@ -365,21 +365,23 @@ app.post('/slack/interactive', async (req, res) => {
         timestamp: new Date().toISOString()
       };
 
-      // 特殊な医師IDのチェック
+      // 特殊な医師IDのチェック（これらは特別なメッセージのみで、チャンネル検索は通常通り）
       const specialDoctors = {
-        '999': { name: '野田ボス 👑', special: true, priority: 'urgent' },
-        '000': { name: 'システム管理者 🤖', special: true, priority: 'system' },
-        '777': { name: 'ラッキードクター 🍀', special: true, priority: 'lucky' },
-        '666': { name: 'ダークドクター 😈', special: true, priority: 'dark' },
-        '123': { name: 'テスト先生 🧪', special: true, priority: 'test' }
+        '999': { displayName: '野田ボス 👑', special: true, priority: 'urgent' },
+        '000': { displayName: 'システム管理者 🤖', special: true, priority: 'system' },
+        '777': { displayName: 'ラッキードクター 🍀', special: true, priority: 'lucky' },
+        '666': { displayName: 'ダークドクター 😈', special: true, priority: 'dark' },
+        '123': { displayName: 'テスト先生 🧪', special: true, priority: 'test' }
       };
 
+      // 特殊IDの場合、表示用の名前を追加（元の名前は保持）
       if (specialDoctors[formData.doctorId]) {
         const specialDoc = specialDoctors[formData.doctorId];
-        formData.originalDoctorName = formData.doctorName;
-        formData.doctorName = specialDoc.name;
+        formData.displayDoctorName = `${formData.doctorName} ${specialDoc.displayName}`;
         formData.isSpecialDoctor = specialDoc.special;
         formData.priority = specialDoc.priority;
+      } else {
+        formData.displayDoctorName = formData.doctorName;
       }
 
       console.log('フォームデータ:', {
@@ -442,7 +444,7 @@ app.post('/slack/interactive', async (req, res) => {
                 },
                 {
                   type: 'mrkdwn',
-                  text: `*担当医師:*\n${formData.doctorName}`
+                  text: `*担当医師:*\n${formData.displayDoctorName || formData.doctorName}`
                 },
                 {
                   type: 'mrkdwn',
@@ -471,6 +473,90 @@ app.post('/slack/interactive', async (req, res) => {
         console.log('✅ ユーザーへの確認メッセージ送信完了');
       } catch (error) {
         console.error('❌ ユーザーへのメッセージ送信エラー:', error);
+      }
+
+      // 医師チャンネルへの直接通知
+      let doctorChannel = null;
+      let cursor;
+
+      // 医師IDから対応するチャンネルを検索（d{番号}_{医師ID}_形式）
+      try {
+        do {
+          const result = await slackClient.conversations.list({
+            types: 'public_channel,private_channel',
+            limit: 1000,
+            cursor
+          });
+
+          // d{数字}_{医師ID}_ のパターンでチャンネルを検索
+          doctorChannel = result.channels.find(c =>
+            c.name.match(new RegExp(`^d\\d+_${formData.doctorId}_`))
+          );
+
+          if (doctorChannel) break;
+          cursor = result.response_metadata?.next_cursor;
+        } while (cursor);
+
+        // 医師チャンネルが見つかった場合、そこに通知
+        if (doctorChannel) {
+          console.log(`✅ 医師チャンネル発見: ${doctorChannel.name} (${doctorChannel.id})`);
+
+          await slackClient.chat.postMessage({
+            channel: doctorChannel.id,
+            text: '新しい質問が届きました',
+            blocks: [
+              {
+                type: 'header',
+                text: {
+                  type: 'plain_text',
+                  text: '📩 質問が届きました'
+                }
+              },
+              {
+                type: 'section',
+                text: {
+                  type: 'mrkdwn',
+                  text: `*質問者:* <@${payload.user.id}>`
+                }
+              },
+              {
+                type: 'section',
+                fields: [
+                  {
+                    type: 'mrkdwn',
+                    text: `*患者ID:*\n${formData.patientId}`
+                  },
+                  {
+                    type: 'mrkdwn',
+                    text: `*質問タイプ:*\n${formData.questionTypeLabel}`
+                  }
+                ]
+              },
+              {
+                type: 'section',
+                text: {
+                  type: 'mrkdwn',
+                  text: `*質問内容:*\n${formData.questionContent}`
+                }
+              },
+              {
+                type: 'divider'
+              },
+              {
+                type: 'section',
+                text: {
+                  type: 'mrkdwn',
+                  text: '回答をお願いします。'
+                }
+              }
+            ]
+          });
+          console.log('✅ 医師チャンネルへの通知送信完了');
+        } else {
+          console.log(`⚠️ 医師ID: ${formData.doctorId} に対応するチャンネルが見つかりません`);
+        }
+      } catch (error) {
+        console.error('❌ 医師チャンネル検索エラー:', error);
       }
 
       // 管理チャンネルへの通知
