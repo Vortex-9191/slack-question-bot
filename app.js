@@ -365,6 +365,23 @@ app.post('/slack/interactive', async (req, res) => {
         timestamp: new Date().toISOString()
       };
 
+      // 特殊な医師IDのチェック
+      const specialDoctors = {
+        '999': { name: '野田ボス 👑', special: true, priority: 'urgent' },
+        '000': { name: 'システム管理者 🤖', special: true, priority: 'system' },
+        '777': { name: 'ラッキードクター 🍀', special: true, priority: 'lucky' },
+        '666': { name: 'ダークドクター 😈', special: true, priority: 'dark' },
+        '123': { name: 'テスト先生 🧪', special: true, priority: 'test' }
+      };
+
+      if (specialDoctors[formData.doctorId]) {
+        const specialDoc = specialDoctors[formData.doctorId];
+        formData.originalDoctorName = formData.doctorName;
+        formData.doctorName = specialDoc.name;
+        formData.isSpecialDoctor = specialDoc.special;
+        formData.priority = specialDoc.priority;
+      }
+
       console.log('フォームデータ:', {
         ...formData,
         questionContent: formData.questionContent.substring(0, 50) + '...'
@@ -377,6 +394,30 @@ app.post('/slack/interactive', async (req, res) => {
 
       // ユーザーへの確認メッセージ
       try {
+        // 特別なメッセージを準備
+        let headerText = '✅ 質問を受け付けました';
+        if (formData.isSpecialDoctor) {
+          switch(formData.priority) {
+            case 'urgent':
+              headerText = '🎉 野田ボスへの質問を受け付けました！';
+              break;
+            case 'system':
+              headerText = '🤖 システム管理者への質問を受け付けました';
+              break;
+            case 'lucky':
+              headerText = '🍀 ラッキー！特別な医師への質問です！';
+              break;
+            case 'dark':
+              headerText = '😈 ダークサイドへようこそ...';
+              break;
+            case 'test':
+              headerText = '🧪 テストモードで質問を受け付けました';
+              break;
+            default:
+              headerText = '✨ 特別な質問を受け付けました！';
+          }
+        }
+
         await slackClient.chat.postMessage({
           channel: payload.user.id,
           text: '質問を受け付けました',
@@ -385,7 +426,7 @@ app.post('/slack/interactive', async (req, res) => {
               type: 'header',
               text: {
                 type: 'plain_text',
-                text: '✅ 質問を受け付けました'
+                text: headerText
               }
             },
             {
@@ -435,6 +476,11 @@ app.post('/slack/interactive', async (req, res) => {
       // 管理チャンネルへの通知
       if (adminChannelId) {
         try {
+          // 特別な通知ヘッダー
+          const notificationHeader = formData.isSpecialDoctor
+            ? '🚨 野田ボスへの質問！'
+            : '📮 新しい質問';
+
           await slackClient.chat.postMessage({
             channel: adminChannelId,
             text: '新しい質問が投稿されました',
@@ -443,7 +489,7 @@ app.post('/slack/interactive', async (req, res) => {
                 type: 'header',
                 text: {
                   type: 'plain_text',
-                  text: '📮 新しい質問'
+                  text: notificationHeader
                 }
               },
               {
