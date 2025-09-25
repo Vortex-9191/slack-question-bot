@@ -4,12 +4,15 @@
   "description": "Slackで質問を管理する自由記述チャットボット",
   "main": "index.js",
   "scripts": {
-    "start": "node debug-bot.js",
+    "start": "node app.js",
+    "start:debug": "node debug-bot.js",
+    "start:stable": "node stable-bot.js",
+    "start:working": "node working-bot.js",
     "start:minimal": "node minimal-webhook.js",
     "start:full": "node simple-webhook-server.js",
     "start:bolt": "node simple-question-bot-webhook.js",
     "start:socket": "node simple-question-bot.js",
-    "dev": "nodemon index.js",
+    "dev": "nodemon app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
