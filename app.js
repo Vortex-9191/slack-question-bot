@@ -33,13 +33,13 @@ console.log('✅ Slack WebClient初期化完了');
 // ===============================
 // ミドルウェア設定
 // ===============================
-// Raw bodyを保存（署名検証用）
-app.use(bodyParser.raw({ type: 'application/x-www-form-urlencoded', verify: (req, res, buf) => {
-  req.rawBody = buf.toString('utf8');
-}}));
-
-// URLエンコードされたボディをパース
-app.use(bodyParser.urlencoded({ extended: true }));
+// Raw bodyを保存しつつ、通常のパースも行う
+app.use(bodyParser.urlencoded({
+  extended: true,
+  verify: (req, res, buf) => {
+    req.rawBody = buf.toString('utf8');
+  }
+}));
 
 // JSONボディもサポート
 app.use(bodyParser.json());
