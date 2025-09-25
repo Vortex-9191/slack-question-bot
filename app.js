@@ -169,6 +169,10 @@ app.post('/slack/slash-commands', async (req, res) => {
           view: {
             type: 'modal',
             callback_id: 'question_submission',
+            private_metadata: JSON.stringify({
+              channel_id: req.body.channel_id,
+              user_id: user_id
+            }),
             title: {
               type: 'plain_text',
               text: '質問フォーム',
@@ -531,6 +535,10 @@ app.post('/slack/interactive', async (req, res) => {
 
       const values = payload.view.state.values;
 
+      // metadataからチャンネルIDを取得
+      const metadata = JSON.parse(payload.view.private_metadata || '{}');
+      const originalChannelId = metadata.channel_id;
+
       // フォームデータ取得
       const formData = {
         patientId: values.patient_id_block.patient_id.value,
@@ -541,7 +549,8 @@ app.post('/slack/interactive', async (req, res) => {
         questionContent: values.question_content_block.question_content.value,
         userId: payload.user.id,
         userName: payload.user.name,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        originalChannelId: originalChannelId
       };
 
 
@@ -555,12 +564,12 @@ app.post('/slack/interactive', async (req, res) => {
         response_action: 'clear'
       });
 
-      // ユーザーへの確認メッセージ
-      try {
-
-        await slackClient.chat.postMessage({
-          channel: payload.user.id,
-          text: '質問を受け付けました',
+      // コマンドを入力したチャンネルに確認メッセージを送信
+      if (originalChannelId) {
+        try {
+          await slackClient.chat.postMessage({
+            channel: originalChannelId,
+            text: '質問を受け付けました',
           blocks: [
             {
               type: 'header',
@@ -608,9 +617,10 @@ app.post('/slack/interactive', async (req, res) => {
             }
           ]
         });
-        console.log('✅ ユーザーへの確認メッセージ送信完了');
-      } catch (error) {
-        console.error('❌ ユーザーへのメッセージ送信エラー:', error);
+          console.log('✅ チャンネルへの確認メッセージ送信完了');
+        } catch (error) {
+          console.error('❌ チャンネルへのメッセージ送信エラー:', error);
+        }
       }
 
       // 医師チャンネルへの直接通知
