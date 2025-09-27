@@ -567,6 +567,33 @@ app.post('/slack/interactive', async (req, res) => {
       // コマンドを入力したチャンネルに確認メッセージを送信
       if (originalChannelId) {
         try {
+          // まずチャンネル情報を確認
+          try {
+            const channelInfo = await slackClient.conversations.info({
+              channel: originalChannelId
+            });
+            console.log(`チャンネル確認: ${channelInfo.channel.name} (${originalChannelId})`);
+          } catch (infoError) {
+            console.log(`チャンネル情報取得エラー: ${originalChannelId}`, infoError.data);
+            // ボットをチャンネルに招待する必要があるかもしれません
+            if (infoError.data?.error === 'not_in_channel') {
+              console.log('ボットがチャンネルに参加していません。');
+              // パブリックチャンネルの場合は参加を試みる
+              try {
+                await slackClient.conversations.join({
+                  channel: originalChannelId
+                });
+                console.log('チャンネルに参加しました');
+              } catch (joinError) {
+                console.log('チャンネルへの参加に失敗。DMで送信します。');
+                originalChannelId = payload.user.id; // DMにフォールバック
+              }
+            } else if (infoError.data?.error === 'channel_not_found') {
+              console.log('チャンネルが見つかりません。DMで送信します。');
+              originalChannelId = payload.user.id; // DMにフォールバック
+            }
+          }
+
           await slackClient.chat.postMessage({
             channel: originalChannelId,
             text: '質問を受け付けました',
@@ -620,6 +647,47 @@ app.post('/slack/interactive', async (req, res) => {
           console.log('✅ チャンネルへの確認メッセージ送信完了');
         } catch (error) {
           console.error('❌ チャンネルへのメッセージ送信エラー:', error);
+
+          // エラーの場合はユーザーにDMで通知
+          try {
+            await slackClient.chat.postMessage({
+              channel: payload.user.id,
+              text: '質問を受け付けました（DMで通知）',
+              blocks: [
+                {
+                  type: 'section',
+                  text: {
+                    type: 'mrkdwn',
+                    text: '質問を受け付けました。\n※チャンネルへの投稿に失敗したため、DMで通知しています。'
+                  }
+                },
+                {
+                  type: 'section',
+                  fields: [
+                    {
+                      type: 'mrkdwn',
+                      text: `*患者ID:*\n${formData.patientId}`
+                    },
+                    {
+                      type: 'mrkdwn',
+                      text: `*質問タイプ:*\n${formData.questionTypeLabel}`
+                    },
+                    {
+                      type: 'mrkdwn',
+                      text: `*担当医師:*\n${formData.doctorName}`
+                    },
+                    {
+                      type: 'mrkdwn',
+                      text: `*医師ID:*\n${formData.doctorId}`
+                    }
+                  ]
+                }
+              ]
+            });
+            console.log('DMでの通知送信完了');
+          } catch (dmError) {
+            console.error('DMでの通知も失敗:', dmError);
+          }
         }
       }
 
@@ -751,8 +819,17 @@ app.post('/slack/interactive', async (req, res) => {
       }
 
       // 管理チャンネルへの通知
-      if (adminChannelId) {
+      if (adminChannelId && adminChannelId !== '未設定' && adminChannelId !== 'C0951BS5QHW') {
         try {
+          // 管理チャンネルの存在確認
+          try {
+            await slackClient.conversations.info({
+              channel: adminChannelId
+            });
+          } catch (adminError) {
+            console.log('管理チャンネルが見つかりません:', adminChannelId);
+            return; // 管理チャンネルへの通知をスキップ
+          }
 
           await slackClient.chat.postMessage({
             channel: adminChannelId,
