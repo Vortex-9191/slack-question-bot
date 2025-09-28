@@ -695,8 +695,10 @@ app.post('/slack/interactive', async (req, res) => {
       let doctorChannel = null;
       let cursor;
 
-      // 医師IDから対応するチャンネルを検索（d{番号}_{医師ID}_形式）
+      // 医師IDから対応するチャンネルを検索
       try {
+        console.log(`\n🔍 医師ID ${formData.doctorId} のチャンネルを検索中...`);
+
         do {
           const result = await slackClient.conversations.list({
             types: 'public_channel,private_channel',
@@ -704,10 +706,27 @@ app.post('/slack/interactive', async (req, res) => {
             cursor
           });
 
-          // d{数字}_{医師ID}_ のパターンでチャンネルを検索
-          doctorChannel = result.channels.find(c =>
-            c.name.match(new RegExp(`^d\\d+_${formData.doctorId}_`))
+          // デバッグ: 医師IDを含むチャンネルをすべて表示
+          const relatedChannels = result.channels.filter(c =>
+            c.name.includes(formData.doctorId)
           );
+
+          if (relatedChannels.length > 0) {
+            console.log(`医師ID ${formData.doctorId} を含むチャンネル:`, relatedChannels.map(c => c.name));
+          }
+
+          // 複数のパターンで検索
+          doctorChannel = result.channels.find(c => {
+            // パターン1: d{数字}_{医師ID}_
+            if (c.name.match(new RegExp(`^d\\d+_${formData.doctorId}_`))) return true;
+            // パターン2: d_{医師ID}_
+            if (c.name.match(new RegExp(`^d_${formData.doctorId}_`))) return true;
+            // パターン3: doctor_{医師ID}
+            if (c.name.match(new RegExp(`^doctor_${formData.doctorId}`))) return true;
+            // パターン4: 医師IDそのもの
+            if (c.name === formData.doctorId) return true;
+            return false;
+          });
 
           if (doctorChannel) break;
           cursor = result.response_metadata?.next_cursor;
@@ -716,6 +735,24 @@ app.post('/slack/interactive', async (req, res) => {
         // 医師チャンネルが見つかった場合、そこに通知
         if (doctorChannel) {
           console.log(`✅ 医師チャンネル発見: ${doctorChannel.name} (${doctorChannel.id})`);
+
+          // ボットがチャンネルに参加しているか確認
+          try {
+            const membershipInfo = await slackClient.conversations.info({
+              channel: doctorChannel.id
+            });
+            console.log(`チャンネル ${doctorChannel.name} のメンバー確認完了`);
+          } catch (memberError) {
+            console.log(`チャンネル ${doctorChannel.name} への参加を試みます...`);
+            try {
+              await slackClient.conversations.join({
+                channel: doctorChannel.id
+              });
+              console.log(`チャンネル ${doctorChannel.name} に参加しました`);
+            } catch (joinError) {
+              console.error(`チャンネル ${doctorChannel.name} への参加に失敗:`, joinError.data);
+            }
+          }
 
           await slackClient.chat.postMessage({
             channel: doctorChannel.id,
@@ -813,6 +850,12 @@ app.post('/slack/interactive', async (req, res) => {
           console.log('✅ 医師チャンネルへの通知送信完了');
         } else {
           console.log(`⚠️ 医師ID: ${formData.doctorId} に対応するチャンネルが見つかりません`);
+          console.log('検索したパターン:');
+          console.log(`  - d{数字}_${formData.doctorId}_`);
+          console.log(`  - d_${formData.doctorId}_`);
+          console.log(`  - doctor_${formData.doctorId}`);
+          console.log(`  - ${formData.doctorId}`);
+          console.log('\nヒント: チャンネル名が上記のパターンに一致することを確認してください。');
         }
       } catch (error) {
         console.error('❌ 医師チャンネル検索エラー:', error);
