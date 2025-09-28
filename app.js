@@ -697,10 +697,13 @@ app.post('/slack/interactive', async (req, res) => {
 
       // 医師IDから対応するチャンネルを検索
       try {
-        console.log(`\n🔍 医師ID ${formData.doctorId} のチャンネルを検索中...`);
+        console.log(`\n=======================================`);
+        console.log(`🔍 医師ID "${formData.doctorId}" のチャンネルを検索中...`);
+        console.log(`=======================================`);
 
         // まず参加しているチャンネルのみを取得
         let allChannels = [];
+        let totalChannelsScanned = 0;
 
         do {
           const result = await slackClient.conversations.list({
@@ -710,7 +713,17 @@ app.post('/slack/interactive', async (req, res) => {
             cursor
           });
 
+          totalChannelsScanned += result.channels.length;
+
           allChannels = allChannels.concat(result.channels);
+
+          // デバッグ: すべてのチャンネル名を表示（最初の10個）
+          if (result.channels.length > 0 && totalChannelsScanned <= 10) {
+            console.log(`スキャンしたチャンネル (最初の${result.channels.length}個):`);
+            result.channels.slice(0, 10).forEach(c => {
+              console.log(`  - ${c.name} (is_member: ${c.is_member})`);
+            });
+          }
 
           // デバッグ: 医師IDを含むチャンネルをすべて表示
           const relatedChannels = result.channels.filter(c =>
@@ -718,22 +731,41 @@ app.post('/slack/interactive', async (req, res) => {
           );
 
           if (relatedChannels.length > 0) {
-            console.log(`医師ID ${formData.doctorId} を含むチャンネル:`, relatedChannels.map(c => c.name));
+            console.log(`\n✨ 医師ID "${formData.doctorId}" を含むチャンネル発見:`);
+            relatedChannels.forEach(c => {
+              console.log(`  - ${c.name} (ID: ${c.id}, is_member: ${c.is_member})`);
+            });
           }
 
           cursor = result.response_metadata?.next_cursor;
         } while (cursor);
 
-        console.log(`総チャンネル数: ${allChannels.length}`);
+        console.log(`\n📊 検索結果:`);
+        console.log(`  総チャンネル数: ${allChannels.length}`);
+        console.log(`  検索する医師ID: "${formData.doctorId}"`);
+
+        // d1_999 形式のチャンネルを特別にチェック
+        const specialCheck = allChannels.filter(c =>
+          c.name.startsWith('d1_') || c.name.startsWith('d_')
+        );
+        if (specialCheck.length > 0) {
+          console.log(`\n医師チャンネル候補 (d1_ または d_ で始まる):`);
+          specialCheck.forEach(c => {
+            console.log(`  - ${c.name} (is_member: ${c.is_member})`);
+          });
+        }
 
         // 複数のパターンで検索（日本語を含むチャンネル名にも対応）
         doctorChannel = allChannels.find(c => {
             const channelName = c.name.toLowerCase();
             const doctorId = formData.doctorId.toLowerCase();
 
-            // デバッグ用：d1_999 を含むチャンネルをログ出力
-            if (channelName.includes(`d1_${doctorId}`) || channelName.includes(`d_${doctorId}`)) {
-              console.log(`  候補チャンネル: ${c.name} (ID: ${c.id})`);
+            // デバッグ用：詳細なマッチング情報
+            if (channelName.includes(doctorId)) {
+              console.log(`\n🔎 チェック中: "${c.name}"`);
+              console.log(`   - lowercase: "${channelName}"`);
+              console.log(`   - 医師ID含む: ${channelName.includes(doctorId)}`);
+              console.log(`   - is_member: ${c.is_member}`);
             }
 
             // パターン1: d{数字}_{医師ID}_ で始まる（日本語名も含む）
