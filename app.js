@@ -783,9 +783,14 @@ app.post('/slack/interactive', async (req, res) => {
               console.log(`  → マッチ: パターン3 (doctor_${doctorId})`);
               return true;
             }
-            // パターン4: 医師IDそのもの
+            // パターン4: {医師ID}_info のパターン
+            if (channelName === `${doctorId}_info`) {
+              console.log(`  → マッチ: パターン4 (${doctorId}_info)`);
+              return true;
+            }
+            // パターン5: 医師IDそのもの
             if (channelName === doctorId) {
-              console.log(`  → マッチ: パターン4 (完全一致)`);
+              console.log(`  → マッチ: パターン5 (完全一致)`);
               return true;
             }
             return false;
