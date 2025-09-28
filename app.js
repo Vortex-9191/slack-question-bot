@@ -699,12 +699,18 @@ app.post('/slack/interactive', async (req, res) => {
       try {
         console.log(`\n🔍 医師ID ${formData.doctorId} のチャンネルを検索中...`);
 
+        // まず参加しているチャンネルのみを取得
+        let allChannels = [];
+
         do {
           const result = await slackClient.conversations.list({
             types: 'public_channel,private_channel',
+            exclude_archived: true,
             limit: 1000,
             cursor
           });
+
+          allChannels = allChannels.concat(result.channels);
 
           // デバッグ: 医師IDを含むチャンネルをすべて表示
           const relatedChannels = result.channels.filter(c =>
@@ -715,22 +721,43 @@ app.post('/slack/interactive', async (req, res) => {
             console.log(`医師ID ${formData.doctorId} を含むチャンネル:`, relatedChannels.map(c => c.name));
           }
 
-          // 複数のパターンで検索
-          doctorChannel = result.channels.find(c => {
-            // パターン1: d{数字}_{医師ID}_
-            if (c.name.match(new RegExp(`^d\\d+_${formData.doctorId}_`))) return true;
-            // パターン2: d_{医師ID}_
-            if (c.name.match(new RegExp(`^d_${formData.doctorId}_`))) return true;
-            // パターン3: doctor_{医師ID}
-            if (c.name.match(new RegExp(`^doctor_${formData.doctorId}`))) return true;
-            // パターン4: 医師IDそのもの
-            if (c.name === formData.doctorId) return true;
-            return false;
-          });
-
-          if (doctorChannel) break;
           cursor = result.response_metadata?.next_cursor;
         } while (cursor);
+
+        console.log(`総チャンネル数: ${allChannels.length}`);
+
+        // 複数のパターンで検索（日本語を含むチャンネル名にも対応）
+        doctorChannel = allChannels.find(c => {
+            const channelName = c.name.toLowerCase();
+            const doctorId = formData.doctorId.toLowerCase();
+
+            // デバッグ用：d1_999 を含むチャンネルをログ出力
+            if (channelName.includes(`d1_${doctorId}`) || channelName.includes(`d_${doctorId}`)) {
+              console.log(`  候補チャンネル: ${c.name} (ID: ${c.id})`);
+            }
+
+            // パターン1: d{数字}_{医師ID}_ で始まる（日本語名も含む）
+            if (channelName.match(new RegExp(`^d\\d+_${doctorId}($|_|[^0-9])`))) {
+              console.log(`  → マッチ: パターン1 (d{数字}_${doctorId}_*)`);
+              return true;
+            }
+            // パターン2: d_{医師ID}_ で始まる
+            if (channelName.match(new RegExp(`^d_${doctorId}($|_|[^0-9])`))) {
+              console.log(`  → マッチ: パターン2 (d_${doctorId}_*)`);
+              return true;
+            }
+            // パターン3: doctor_{医師ID}
+            if (channelName.match(new RegExp(`^doctor_${doctorId}($|_|[^0-9])`))) {
+              console.log(`  → マッチ: パターン3 (doctor_${doctorId})`);
+              return true;
+            }
+            // パターン4: 医師IDそのもの
+            if (channelName === doctorId) {
+              console.log(`  → マッチ: パターン4 (完全一致)`);
+              return true;
+            }
+            return false;
+          });
 
         // 医師チャンネルが見つかった場合、そこに通知
         if (doctorChannel) {
