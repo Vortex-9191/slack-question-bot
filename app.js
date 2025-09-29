@@ -692,6 +692,8 @@ app.post('/slack/interactive', async (req, res) => {
         response_action: 'clear'
       });
 
+      // originalMessage変数を上位スコープで宣言
+      let originalMessage = null;
 
       // 既存のチャンネル確認処理
       if (originalChannelId) {
@@ -724,7 +726,7 @@ app.post('/slack/interactive', async (req, res) => {
           }
 
           // 元のチャンネルへメッセージ送信
-          const originalMessage = await slackClient.chat.postMessage({
+          originalMessage = await slackClient.chat.postMessage({
             channel: originalChannelId,
             text: `<@${payload.user.id}> さんが質問を送信しました`,
           blocks: [
@@ -1121,7 +1123,7 @@ app.post('/slack/interactive', async (req, res) => {
                               questionContent: formData.questionContent,
                               userId: formData.userId,
                               originalChannelId: formData.originalChannelId,
-                              originalMessageTs: originalMessage.ts,
+                              originalMessageTs: originalMessage?.ts || null,
                               doctorChannelId: doctorChannel.id
                             })
                           },
@@ -1143,7 +1145,7 @@ app.post('/slack/interactive', async (req, res) => {
                               questionContent: formData.questionContent,
                               userId: formData.userId,
                               originalChannelId: formData.originalChannelId,
-                              originalMessageTs: originalMessage.ts,
+                              originalMessageTs: originalMessage?.ts || null,
                               doctorChannelId: doctorChannel.id
                             })
                           }
