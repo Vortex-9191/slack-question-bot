@@ -355,25 +355,31 @@ app.post('/slack/interactive', async (req, res) => {
     if (payload.type === 'block_actions') {
       const action = payload.actions[0];
 
-      // 修正・追記ボタン
+      // 回答ボタン（回答モーダルを表示）
       if (action.action_id === 'modify_question') {
         const data = JSON.parse(action.value);
-        console.log('修正・追記モーダルを開く...');
+        console.log('回答ボタンがクリックされました - 回答モーダルを表示');
 
         try {
+          // 回答モーダルを開く（修正・追記用）
           await slackClient.views.open({
             trigger_id: payload.trigger_id,
             view: {
               type: 'modal',
-              callback_id: 'modify_question_submission',
-              private_metadata: action.value,
+              callback_id: 'modify_answer_submission',
+              private_metadata: JSON.stringify({
+                ...data,
+                modifierId: payload.user.id,
+                channelId: payload.channel.id,
+                messageTs: payload.message.ts
+              }),
               title: {
                 type: 'plain_text',
-                text: '質問を修正・追記'
+                text: '質問への回答'
               },
               submit: {
                 type: 'plain_text',
-                text: '送信'
+                text: '回答を送信'
               },
               close: {
                 type: 'plain_text',
@@ -384,7 +390,14 @@ app.post('/slack/interactive', async (req, res) => {
                   type: 'section',
                   text: {
                     type: 'mrkdwn',
-                    text: `*患者ID:* ${data.patientId}\n*質問タイプ:* ${data.questionType}`
+                    text: `*質問者:* <@${data.userId}>\n*質問タイプ:* ${data.questionType}\n*患者ID:* ${data.patientId}\n*担当医師:* ${data.doctorName}先生`
+                  }
+                },
+                {
+                  type: 'section',
+                  text: {
+                    type: 'mrkdwn',
+                    text: `*質問内容:*\n${data.questionContent}`
                   }
                 },
                 {
@@ -392,19 +405,18 @@ app.post('/slack/interactive', async (req, res) => {
                 },
                 {
                   type: 'input',
-                  block_id: 'modified_content_block',
+                  block_id: 'modify_answer_block',
                   label: {
                     type: 'plain_text',
-                    text: '修正・追記内容'
+                    text: '回答内容'
                   },
                   element: {
                     type: 'plain_text_input',
-                    action_id: 'modified_content',
+                    action_id: 'modify_answer',
                     multiline: true,
-                    initial_value: data.questionContent,
                     placeholder: {
                       type: 'plain_text',
-                      text: '質問内容を修正または追記してください...'
+                      text: '回答を入力してください'
                     }
                   }
                 }
@@ -419,20 +431,17 @@ app.post('/slack/interactive', async (req, res) => {
         }
       }
 
-      // 承認ボタン
+      // 承認ボタン（単純な承認通知）
       if (action.action_id === 'approve_question') {
         const data = JSON.parse(action.value);
-        console.log('質問を承認...');
+        console.log('承認ボタンがクリックされました');
 
         try {
-          // 元のチャンネルIDを取得（action valueから）
-          const originalChannelId = data.originalChannelId || adminChannelId;
-
-          // 1. 元のチャンネルに承認通知を送信（質問者にメンション）
-          if (originalChannelId) {
+          // 1. 元のチャンネルに承認通知を送信
+          if (data.originalChannelId) {
             await slackClient.chat.postMessage({
-              channel: originalChannelId,
-              text: `<@${data.userId}> 医師から質問への承認がありました`,
+              channel: data.originalChannelId,
+              text: `<@${data.userId}> 医師が質問を承認しました`,
               blocks: [
                 {
                   type: 'section',
@@ -470,35 +479,27 @@ app.post('/slack/interactive', async (req, res) => {
           // 2. 質問者にDMでも通知
           await slackClient.chat.postMessage({
             channel: data.userId,
-            text: '医師が質問を確認しました',
+            text: '医師が質問を承認しました',
             blocks: [
               {
                 type: 'header',
                 text: {
                   type: 'plain_text',
-                  text: '✅ 医師が質問を確認しました'
+                  text: '✅ 質問が承認されました'
                 }
               },
               {
                 type: 'section',
                 text: {
                   type: 'mrkdwn',
-                  text: `${data.doctorName}先生（ID: ${data.doctorId}）が質問を確認しました。\n回答をお待ちください。`
+                  text: `${data.doctorName}先生（ID: ${data.doctorId}）が質問を承認しました。`
                 }
               }
             ]
           });
 
-          // 3. ボタンにリアクションを追加
-          await slackClient.reactions.add({
-            name: 'white_check_mark',
-            channel: payload.channel.id,
-            timestamp: payload.message.ts
-          });
-
-          // 4. ボタンを無効化（オプション）
-          const originalBlocks = payload.message.blocks;
-          const updatedBlocks = originalBlocks.map(block => {
+          // 3. 医師チャンネルのボタンを無効化
+          const originalBlocks = payload.message.blocks.map(block => {
             if (block.type === 'actions') {
               block.elements = block.elements.map(element => {
                 if (element.action_id === 'approve_question') {
@@ -514,7 +515,14 @@ app.post('/slack/interactive', async (req, res) => {
           await slackClient.chat.update({
             channel: payload.channel.id,
             ts: payload.message.ts,
-            blocks: updatedBlocks
+            blocks: originalBlocks
+          });
+
+          // 4. リアクションを追加
+          await slackClient.reactions.add({
+            name: 'white_check_mark',
+            channel: payload.channel.id,
+            timestamp: payload.message.ts
           });
 
           return res.status(200).send('');
@@ -527,12 +535,12 @@ app.post('/slack/interactive', async (req, res) => {
       return res.status(200).send('');
     }
 
-    // 修正モーダルの送信処理
-    if (payload.type === 'view_submission' && payload.view.callback_id === 'modify_question_submission') {
+    // 修正・追記モーダルの送信処理（回答として処理）
+    if (payload.type === 'view_submission' && payload.view.callback_id === 'modify_answer_submission') {
       const originalData = JSON.parse(payload.view.private_metadata);
-      const modifiedContent = payload.view.state.values.modified_content_block.modified_content.value;
+      const answerContent = payload.view.state.values.modify_answer_block.modify_answer.value;
 
-      console.log('修正内容を処理中...');
+      console.log('修正・追記の回答を処理中...');
 
       // モーダルを閉じる
       res.status(200).json({
@@ -540,30 +548,89 @@ app.post('/slack/interactive', async (req, res) => {
       });
 
       try {
-        // 質問者に修正通知を送信
+        // 1. 元のチャンネルに修正・追記の回答通知を送信（質問者にメンション）
+        if (originalData.originalChannelId) {
+          await slackClient.chat.postMessage({
+            channel: originalData.originalChannelId,
+            text: `<@${originalData.userId}> 医師から質問への回答がありました`,
+            blocks: [
+              {
+                type: 'section',
+                text: {
+                  type: 'mrkdwn',
+                  text: `✅ <@${originalData.userId}> さんの質問に回答がありました`
+                }
+              },
+              {
+                type: 'section',
+                fields: [
+                  {
+                    type: 'mrkdwn',
+                    text: `*患者ID:*\n${originalData.patientId}`
+                  },
+                  {
+                    type: 'mrkdwn',
+                    text: `*担当医師:*\n${originalData.doctorName}先生`
+                  }
+                ]
+              },
+              {
+                type: 'section',
+                text: {
+                  type: 'mrkdwn',
+                  text: `*質問内容:*\n${originalData.questionContent}`
+                }
+              },
+              {
+                type: 'divider'
+              },
+              {
+                type: 'section',
+                text: {
+                  type: 'mrkdwn',
+                  text: `*回答:*\n${answerContent}`
+                }
+              },
+              {
+                type: 'context',
+                elements: [
+                  {
+                    type: 'mrkdwn',
+                    text: `回答者: <@${originalData.modifierId}> | ${new Date().toLocaleString('ja-JP')}`
+                  }
+                ]
+              }
+            ]
+          });
+        }
+
+        // 2. 質問者にDMでも回答を送信
         await slackClient.chat.postMessage({
           channel: originalData.userId,
-          text: '医師から修正・追記がありました',
+          text: '医師から質問への回答がありました',
           blocks: [
             {
               type: 'header',
               text: {
                 type: 'plain_text',
-                text: '医師から修正・追記がありました'
+                text: '医師から回答がありました'
               }
             },
             {
               type: 'section',
               text: {
                 type: 'mrkdwn',
-                text: `*元の質問:*\n${originalData.questionContent}`
+                text: `*質問内容:*\n${originalData.questionContent}`
               }
+            },
+            {
+              type: 'divider'
             },
             {
               type: 'section',
               text: {
                 type: 'mrkdwn',
-                text: `*修正後の内容:*\n${modifiedContent}`
+                text: `*回答:*\n${answerContent}`
               }
             },
             {
@@ -571,27 +638,56 @@ app.post('/slack/interactive', async (req, res) => {
               elements: [
                 {
                   type: 'mrkdwn',
-                  text: `修正者: ${originalData.doctorName}先生 | ${new Date().toLocaleString('ja-JP')}`
+                  text: `回答者: ${originalData.doctorName}先生 | ${new Date().toLocaleString('ja-JP')}`
                 }
               ]
             }
           ]
         });
 
-        // 医師チャンネルのメッセージにリアクション
-        if (originalData.doctorChannelId) {
-          await slackClient.reactions.add({
-            name: 'pencil2',
-            channel: originalData.doctorChannelId,
-            timestamp: payload.message?.ts || ''
+        // 3. 医師チャンネルのボタンを無効化
+        const originalBlocks = await slackClient.conversations.history({
+          channel: originalData.channelId,
+          latest: originalData.messageTs,
+          inclusive: true,
+          limit: 1
+        });
+
+        if (originalBlocks.messages && originalBlocks.messages.length > 0) {
+          const updatedBlocks = originalBlocks.messages[0].blocks.map(block => {
+            if (block.type === 'actions') {
+              block.elements = block.elements.map(element => {
+                if (element.action_id === 'modify_question') {
+                  element.text.text = '✅ 回答済み';
+                  element.style = undefined;
+                }
+                return element;
+              });
+            }
+            return block;
+          });
+
+          await slackClient.chat.update({
+            channel: originalData.channelId,
+            ts: originalData.messageTs,
+            blocks: updatedBlocks
           });
         }
+
+        // 4. リアクションを追加
+        await slackClient.reactions.add({
+          name: 'pencil2',
+          channel: originalData.channelId,
+          timestamp: originalData.messageTs
+        });
+
       } catch (error) {
-        console.error('❌ 修正通知エラー:', error);
+        console.error('❌ 修正・追記回答送信エラー:', error);
       }
 
       return;
     }
+
 
     if (payload.type === 'view_submission') {
       console.log('📋 フォーム送信処理...');
@@ -627,7 +723,66 @@ app.post('/slack/interactive', async (req, res) => {
         response_action: 'clear'
       });
 
-      // コマンドを入力したチャンネルに確認メッセージを送信
+      // 元のチャンネルに質問受付完了通知を送信
+      if (originalChannelId) {
+        try {
+          await slackClient.chat.postMessage({
+            channel: originalChannelId,
+            text: `<@${payload.user.id}> さんが質問を送信しました`,
+            blocks: [
+              {
+                type: 'section',
+                text: {
+                  type: 'mrkdwn',
+                  text: `✅ <@${payload.user.id}> さんが質問を送信しました`
+                }
+              },
+              {
+                type: 'section',
+                fields: [
+                  {
+                    type: 'mrkdwn',
+                    text: `*患者ID:*\n${formData.patientId}`
+                  },
+                  {
+                    type: 'mrkdwn',
+                    text: `*質問タイプ:*\n${formData.questionTypeLabel}`
+                  },
+                  {
+                    type: 'mrkdwn',
+                    text: `*担当医師:*\n${formData.doctorName}先生`
+                  },
+                  {
+                    type: 'mrkdwn',
+                    text: `*医師ID:*\n${formData.doctorId}`
+                  }
+                ]
+              },
+              {
+                type: 'section',
+                text: {
+                  type: 'mrkdwn',
+                  text: `*質問内容:*\n${formData.questionContent}`
+                }
+              },
+              {
+                type: 'context',
+                elements: [
+                  {
+                    type: 'mrkdwn',
+                    text: `送信時刻: ${new Date().toLocaleString('ja-JP')}`
+                  }
+                ]
+              }
+            ]
+          });
+          console.log('✅ 元のチャンネルへの通知送信完了');
+        } catch (notifyError) {
+          console.error('元のチャンネルへの通知エラー:', notifyError);
+        }
+      }
+
+      // 既存のチャンネル確認処理
       if (originalChannelId) {
         try {
           // まずチャンネル情報を確認
@@ -659,13 +814,13 @@ app.post('/slack/interactive', async (req, res) => {
 
           await slackClient.chat.postMessage({
             channel: originalChannelId,
-            text: '質問を受け付けました',
+            text: `<@${payload.user.id}> さんが質問を送信しました`,
           blocks: [
             {
-              type: 'header',
+              type: 'section',
               text: {
-                type: 'plain_text',
-                text: '質問を受け付けました'
+                type: 'mrkdwn',
+                text: `<@${payload.user.id}> さんが質問を送信しました`
               }
             },
             {
@@ -681,7 +836,7 @@ app.post('/slack/interactive', async (req, res) => {
                 },
                 {
                   type: 'mrkdwn',
-                  text: `*担当医師:*\n${formData.doctorName}`
+                  text: `*担当医師:*\n${formData.doctorName}先生`
                 },
                 {
                   type: 'mrkdwn',
@@ -922,7 +1077,7 @@ app.post('/slack/interactive', async (req, res) => {
                     type: 'button',
                     text: {
                       type: 'plain_text',
-                      text: '修正・追記する'
+                      text: '回答する'
                     },
                     style: 'danger',
                     action_id: 'modify_question',
@@ -1037,7 +1192,7 @@ app.post('/slack/interactive', async (req, res) => {
                             type: 'button',
                             text: {
                               type: 'plain_text',
-                              text: '修正・追記する'
+                              text: '回答する'
                             },
                             style: 'danger',
                             action_id: 'modify_question',
