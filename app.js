@@ -1035,7 +1035,8 @@ app.post('/slack/interactive', async (req, res) => {
             });
             console.log('✅ 医師チャンネルへの通知送信完了');
           } catch (sendError) {
-            console.error(`❌ 医師チャンネルへの送信エラー:`, sendError.data);
+            console.error(`❌ 医師チャンネルへの送信エラー:`, sendError);
+            console.error('  詳細:', JSON.stringify(sendError.data || sendError, null, 2));
 
             // エラーの種類に応じて処理
             if (sendError.data?.error === 'not_in_channel') {
@@ -1114,10 +1115,13 @@ app.post('/slack/interactive', async (req, res) => {
                               questionId: `${formData.userId}_${Date.now()}`,
                               patientId: formData.patientId,
                               questionType: formData.questionType,
+                              questionTypeLabel: formData.questionTypeLabel,
                               doctorName: formData.doctorName,
                               doctorId: formData.doctorId,
                               questionContent: formData.questionContent,
                               userId: formData.userId,
+                              originalChannelId: formData.originalChannelId,
+                              originalMessageTs: originalMessage.ts,
                               doctorChannelId: doctorChannel.id
                             })
                           },
@@ -1133,10 +1137,13 @@ app.post('/slack/interactive', async (req, res) => {
                               questionId: `${formData.userId}_${Date.now()}`,
                               patientId: formData.patientId,
                               questionType: formData.questionType,
+                              questionTypeLabel: formData.questionTypeLabel,
                               doctorName: formData.doctorName,
                               doctorId: formData.doctorId,
                               questionContent: formData.questionContent,
                               userId: formData.userId,
+                              originalChannelId: formData.originalChannelId,
+                              originalMessageTs: originalMessage.ts,
                               doctorChannelId: doctorChannel.id
                             })
                           }
@@ -1158,7 +1165,7 @@ app.post('/slack/interactive', async (req, res) => {
             } else if (sendError.data?.error === 'is_archived') {
               console.error('❌ チャンネルがアーカイブされています');
             } else {
-              console.error('❌ 予期しないエラー:', sendError.data?.error);
+              console.error('❌ 予期しないエラー:', sendError.data?.error || sendError);
             }
           }
         } else {
