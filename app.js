@@ -692,64 +692,6 @@ app.post('/slack/interactive', async (req, res) => {
         response_action: 'clear'
       });
 
-      // 元のチャンネルに質問受付完了通知を送信
-      if (originalChannelId) {
-        try {
-          await slackClient.chat.postMessage({
-            channel: originalChannelId,
-            text: `<@${payload.user.id}> さんが質問を送信しました`,
-            blocks: [
-              {
-                type: 'section',
-                text: {
-                  type: 'mrkdwn',
-                  text: `✅ <@${payload.user.id}> さんが質問を送信しました`
-                }
-              },
-              {
-                type: 'section',
-                fields: [
-                  {
-                    type: 'mrkdwn',
-                    text: `*患者ID:*\n${formData.patientId}`
-                  },
-                  {
-                    type: 'mrkdwn',
-                    text: `*質問タイプ:*\n${formData.questionTypeLabel}`
-                  },
-                  {
-                    type: 'mrkdwn',
-                    text: `*担当医師:*\n${formData.doctorName}先生`
-                  },
-                  {
-                    type: 'mrkdwn',
-                    text: `*医師ID:*\n${formData.doctorId}`
-                  }
-                ]
-              },
-              {
-                type: 'section',
-                text: {
-                  type: 'mrkdwn',
-                  text: `*質問内容:*\n${formData.questionContent}`
-                }
-              },
-              {
-                type: 'context',
-                elements: [
-                  {
-                    type: 'mrkdwn',
-                    text: `送信時刻: ${new Date().toLocaleString('ja-JP')}`
-                  }
-                ]
-              }
-            ]
-          });
-          console.log('✅ 元のチャンネルへの通知送信完了');
-        } catch (notifyError) {
-          console.error('元のチャンネルへの通知エラー:', notifyError);
-        }
-      }
 
       // 既存のチャンネル確認処理
       if (originalChannelId) {
@@ -781,6 +723,7 @@ app.post('/slack/interactive', async (req, res) => {
             }
           }
 
+          // 元のチャンネルへメッセージ送信
           const originalMessage = await slackClient.chat.postMessage({
             channel: originalChannelId,
             text: `<@${payload.user.id}> さんが質問を送信しました`,
