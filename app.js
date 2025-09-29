@@ -437,38 +437,26 @@ app.post('/slack/interactive', async (req, res) => {
         console.log('承認ボタンがクリックされました');
 
         try {
-          // 1. 元のチャンネルに承認通知を送信
-          if (data.originalChannelId) {
+          // 1. 元のチャンネルのスレッドに承認通知を送信
+          if (data.originalChannelId && data.originalMessageTs) {
             await slackClient.chat.postMessage({
               channel: data.originalChannelId,
+              thread_ts: data.originalMessageTs,
               text: `<@${data.userId}> 医師が質問を承認しました`,
               blocks: [
                 {
                   type: 'section',
                   text: {
                     type: 'mrkdwn',
-                    text: `✅ <@${data.userId}> さんの質問が承認されました`
+                    text: `✅ <@${data.userId}> 医師が質問を承認しました`
                   }
-                },
-                {
-                  type: 'section',
-                  fields: [
-                    {
-                      type: 'mrkdwn',
-                      text: `*患者ID:*\n${data.patientId}`
-                    },
-                    {
-                      type: 'mrkdwn',
-                      text: `*担当医師:*\n${data.doctorName}先生`
-                    }
-                  ]
                 },
                 {
                   type: 'context',
                   elements: [
                     {
                       type: 'mrkdwn',
-                      text: `承認者: <@${payload.user.id}> | ${new Date().toLocaleString('ja-JP')}`
+                      text: `承認者: ${data.doctorName}先生 | ${new Date().toLocaleString('ja-JP')}`
                     }
                   ]
                 }
@@ -548,37 +536,18 @@ app.post('/slack/interactive', async (req, res) => {
       });
 
       try {
-        // 1. 元のチャンネルに修正・追記の回答通知を送信（質問者にメンション）
-        if (originalData.originalChannelId) {
+        // 1. 元のチャンネルのスレッドに回答を送信（質問者にメンション）
+        if (originalData.originalChannelId && originalData.originalMessageTs) {
           await slackClient.chat.postMessage({
             channel: originalData.originalChannelId,
-            text: `<@${originalData.userId}> 医師から質問への回答がありました`,
+            thread_ts: originalData.originalMessageTs,
+            text: `<@${originalData.userId}> 医師から回答がありました`,
             blocks: [
               {
                 type: 'section',
                 text: {
                   type: 'mrkdwn',
-                  text: `✅ <@${originalData.userId}> さんの質問に回答がありました`
-                }
-              },
-              {
-                type: 'section',
-                fields: [
-                  {
-                    type: 'mrkdwn',
-                    text: `*患者ID:*\n${originalData.patientId}`
-                  },
-                  {
-                    type: 'mrkdwn',
-                    text: `*担当医師:*\n${originalData.doctorName}先生`
-                  }
-                ]
-              },
-              {
-                type: 'section',
-                text: {
-                  type: 'mrkdwn',
-                  text: `*質問内容:*\n${originalData.questionContent}`
+                  text: `✅ <@${originalData.userId}> 医師から回答がありました`
                 }
               },
               {
@@ -596,7 +565,7 @@ app.post('/slack/interactive', async (req, res) => {
                 elements: [
                   {
                     type: 'mrkdwn',
-                    text: `回答者: <@${originalData.modifierId}> | ${new Date().toLocaleString('ja-JP')}`
+                    text: `回答者: ${originalData.doctorName}先生 | ${new Date().toLocaleString('ja-JP')}`
                   }
                 ]
               }
@@ -812,7 +781,7 @@ app.post('/slack/interactive', async (req, res) => {
             }
           }
 
-          await slackClient.chat.postMessage({
+          const originalMessage = await slackClient.chat.postMessage({
             channel: originalChannelId,
             text: `<@${payload.user.id}> さんが質問を送信しました`,
           blocks: [
@@ -1091,7 +1060,8 @@ app.post('/slack/interactive', async (req, res) => {
                       questionContent: formData.questionContent,
                       userId: formData.userId,
                       originalChannelId: formData.originalChannelId,
-                      doctorChannelId: doctorChannel.id
+                      doctorChannelId: doctorChannel.id,
+                      originalMessageTs: originalMessage.ts
                     })
                   },
                   {
@@ -1112,7 +1082,8 @@ app.post('/slack/interactive', async (req, res) => {
                       questionContent: formData.questionContent,
                       userId: formData.userId,
                       originalChannelId: formData.originalChannelId,
-                      doctorChannelId: doctorChannel.id
+                      doctorChannelId: doctorChannel.id,
+                      originalMessageTs: originalMessage.ts
                     })
                   }
                 ]
