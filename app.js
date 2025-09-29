@@ -112,7 +112,7 @@ function verifySlackSignature(req) {
 app.get('/', (req, res) => {
   const status = {
     status: 'running',
-    app: 'Slack Question Bot',
+    app: '先生質問さん',
     version: '2.0',
     timestamp: new Date().toISOString(),
     endpoints: {
@@ -175,7 +175,7 @@ app.post('/slack/slash-commands', async (req, res) => {
             }),
             title: {
               type: 'plain_text',
-              text: '質問フォーム',
+              text: '先生質問さん',
               emoji: true
             },
             submit: {
@@ -425,7 +425,49 @@ app.post('/slack/interactive', async (req, res) => {
         console.log('質問を承認...');
 
         try {
-          // 承認メッセージを質問者に送信
+          // 元のチャンネルIDを取得（action valueから）
+          const originalChannelId = data.originalChannelId || adminChannelId;
+
+          // 1. 元のチャンネルに承認通知を送信（質問者にメンション）
+          if (originalChannelId) {
+            await slackClient.chat.postMessage({
+              channel: originalChannelId,
+              text: `<@${data.userId}> 医師から質問への承認がありました`,
+              blocks: [
+                {
+                  type: 'section',
+                  text: {
+                    type: 'mrkdwn',
+                    text: `✅ <@${data.userId}> さんの質問が承認されました`
+                  }
+                },
+                {
+                  type: 'section',
+                  fields: [
+                    {
+                      type: 'mrkdwn',
+                      text: `*患者ID:*\n${data.patientId}`
+                    },
+                    {
+                      type: 'mrkdwn',
+                      text: `*担当医師:*\n${data.doctorName}先生`
+                    }
+                  ]
+                },
+                {
+                  type: 'context',
+                  elements: [
+                    {
+                      type: 'mrkdwn',
+                      text: `承認者: <@${payload.user.id}> | ${new Date().toLocaleString('ja-JP')}`
+                    }
+                  ]
+                }
+              ]
+            });
+          }
+
+          // 2. 質問者にDMでも通知
           await slackClient.chat.postMessage({
             channel: data.userId,
             text: '医師が質問を確認しました',
@@ -434,7 +476,7 @@ app.post('/slack/interactive', async (req, res) => {
                 type: 'header',
                 text: {
                   type: 'plain_text',
-                  text: '医師が質問を確認しました'
+                  text: '✅ 医師が質問を確認しました'
                 }
               },
               {
@@ -447,11 +489,32 @@ app.post('/slack/interactive', async (req, res) => {
             ]
           });
 
-          // ボタンにリアクションを追加
+          // 3. ボタンにリアクションを追加
           await slackClient.reactions.add({
             name: 'white_check_mark',
             channel: payload.channel.id,
             timestamp: payload.message.ts
+          });
+
+          // 4. ボタンを無効化（オプション）
+          const originalBlocks = payload.message.blocks;
+          const updatedBlocks = originalBlocks.map(block => {
+            if (block.type === 'actions') {
+              block.elements = block.elements.map(element => {
+                if (element.action_id === 'approve_question') {
+                  element.text.text = '✅ 承認済み';
+                  element.style = undefined;
+                }
+                return element;
+              });
+            }
+            return block;
+          });
+
+          await slackClient.chat.update({
+            channel: payload.channel.id,
+            ts: payload.message.ts,
+            blocks: updatedBlocks
           });
 
           return res.status(200).send('');
@@ -708,7 +771,6 @@ app.post('/slack/interactive', async (req, res) => {
         do {
           const result = await slackClient.conversations.list({
             types: 'public_channel,private_channel',
-            exclude_archived: true,
             limit: 1000,
             cursor
           });
@@ -744,6 +806,17 @@ app.post('/slack/interactive', async (req, res) => {
         console.log(`  総チャンネル数: ${allChannels.length}`);
         console.log(`  検索する医師ID: "${formData.doctorId}"`);
 
+        // デバッグ: 999を含む全チャンネルを表示
+        const channels999All = allChannels.filter(c => c.name.includes('999'));
+        if (channels999All.length > 0) {
+          console.log('\n🔍 "999"を含むすべてのチャンネル:');
+          channels999All.forEach(c => {
+            console.log(`  - ${c.name} (Private: ${c.is_private}, Member: ${c.is_member}, Archived: ${c.is_archived})`);
+          });
+        } else {
+          console.log('\n❌ "999"を含むチャンネルが1つも見つかりません');
+        }
+
         // d1_999 形式のチャンネルを特別にチェック
         const specialCheck = allChannels.filter(c =>
           c.name.startsWith('d1_') || c.name.startsWith('d_')
@@ -756,72 +829,48 @@ app.post('/slack/interactive', async (req, res) => {
         }
 
         // 複数のパターンで検索（日本語を含むチャンネル名にも対応）
-        doctorChannel = allChannels.find(c => {
-            const channelName = c.name.toLowerCase();
-            const doctorId = formData.doctorId.toLowerCase();
+        // document-confirmation-botと完全に同じ検索方法を使用
+        doctorChannel = allChannels.find(c =>
+          c.name.match(new RegExp(`^d\\d+_${formData.doctorId}_`))
+        );
 
-            // デバッグ用：詳細なマッチング情報
-            if (channelName.includes(doctorId)) {
-              console.log(`\n🔎 チェック中: "${c.name}"`);
-              console.log(`   - lowercase: "${channelName}"`);
-              console.log(`   - 医師ID含む: ${channelName.includes(doctorId)}`);
-              console.log(`   - is_member: ${c.is_member}`);
-            }
+        if (doctorChannel) {
+          console.log(`\n🎯 正規表現 ^d\\d+_${formData.doctorId}_ でマッチ: ${doctorChannel.name}`);
+        } else {
+          console.log(`\n❌ 正規表現 ^d\\d+_${formData.doctorId}_ にマッチするチャンネルなし`);
+        }
 
-            // パターン1: d{数字}_{医師ID}_ で始まる（日本語名も含む）
-            if (channelName.match(new RegExp(`^d\\d+_${doctorId}($|_|[^0-9])`))) {
-              console.log(`  → マッチ: パターン1 (d{数字}_${doctorId}_*)`);
-              return true;
-            }
-            // パターン2: d_{医師ID}_ で始まる
-            if (channelName.match(new RegExp(`^d_${doctorId}($|_|[^0-9])`))) {
-              console.log(`  → マッチ: パターン2 (d_${doctorId}_*)`);
-              return true;
-            }
-            // パターン3: doctor_{医師ID}
-            if (channelName.match(new RegExp(`^doctor_${doctorId}($|_|[^0-9])`))) {
-              console.log(`  → マッチ: パターン3 (doctor_${doctorId})`);
-              return true;
-            }
-            // パターン4: {医師ID}_info のパターン
-            if (channelName === `${doctorId}_info`) {
-              console.log(`  → マッチ: パターン4 (${doctorId}_info)`);
-              return true;
-            }
-            // パターン5: 医師IDそのもの
-            if (channelName === doctorId) {
-              console.log(`  → マッチ: パターン5 (完全一致)`);
-              return true;
-            }
-            return false;
+        // デバッグ：すべてのd1_999パターンを表示
+        const d1_999_channels = allChannels.filter(c =>
+          c.name.startsWith('d1_999') || c.name.startsWith('d_999')
+        );
+        if (d1_999_channels.length > 0) {
+          console.log('\n🔍 999関連のdチャンネル:');
+          d1_999_channels.forEach(c => {
+            console.log(`  - ${c.name} (Private: ${c.is_private}, Member: ${c.is_member}, Archived: ${c.is_archived})`);
           });
+        }
+
+        // 見つからない場合は999_infoを探す（フォールバック）
+        if (!doctorChannel) {
+          doctorChannel = allChannels.find(c => c.name === `${formData.doctorId}_info`);
+          if (doctorChannel) {
+            console.log(`\n💡 フォールバック: ${formData.doctorId}_info チャンネルを使用`);
+          } else {
+            console.log(`\n❌ ${formData.doctorId}_info チャンネルも見つかりません`);
+          }
+        }
 
         // 医師チャンネルが見つかった場合、そこに通知
         if (doctorChannel) {
           console.log(`✅ 医師チャンネル発見: ${doctorChannel.name} (${doctorChannel.id})`);
 
-          // ボットがチャンネルに参加しているか確認
+          // チャンネルが見つかったら直接送信（document-confirmation-botと同じ方式）
           try {
-            const membershipInfo = await slackClient.conversations.info({
-              channel: doctorChannel.id
-            });
-            console.log(`チャンネル ${doctorChannel.name} のメンバー確認完了`);
-          } catch (memberError) {
-            console.log(`チャンネル ${doctorChannel.name} への参加を試みます...`);
-            try {
-              await slackClient.conversations.join({
-                channel: doctorChannel.id
-              });
-              console.log(`チャンネル ${doctorChannel.name} に参加しました`);
-            } catch (joinError) {
-              console.error(`チャンネル ${doctorChannel.name} への参加に失敗:`, joinError.data);
-            }
-          }
-
-          await slackClient.chat.postMessage({
-            channel: doctorChannel.id,
-            text: '新しい質問が届きました',
-            blocks: [
+            await slackClient.chat.postMessage({
+              channel: doctorChannel.id,
+              text: '新しい質問が届きました',
+              blocks: [
               {
                 type: 'header',
                 text: {
@@ -881,10 +930,12 @@ app.post('/slack/interactive', async (req, res) => {
                       questionId: `${formData.userId}_${Date.now()}`,
                       patientId: formData.patientId,
                       questionType: formData.questionType,
+                      questionTypeLabel: formData.questionTypeLabel,
                       doctorName: formData.doctorName,
                       doctorId: formData.doctorId,
                       questionContent: formData.questionContent,
                       userId: formData.userId,
+                      originalChannelId: formData.originalChannelId,
                       doctorChannelId: doctorChannel.id
                     })
                   },
@@ -900,18 +951,147 @@ app.post('/slack/interactive', async (req, res) => {
                       questionId: `${formData.userId}_${Date.now()}`,
                       patientId: formData.patientId,
                       questionType: formData.questionType,
+                      questionTypeLabel: formData.questionTypeLabel,
                       doctorName: formData.doctorName,
                       doctorId: formData.doctorId,
                       questionContent: formData.questionContent,
                       userId: formData.userId,
+                      originalChannelId: formData.originalChannelId,
                       doctorChannelId: doctorChannel.id
                     })
                   }
                 ]
               }
             ]
-          });
-          console.log('✅ 医師チャンネルへの通知送信完了');
+            });
+            console.log('✅ 医師チャンネルへの通知送信完了');
+          } catch (sendError) {
+            console.error(`❌ 医師チャンネルへの送信エラー:`, sendError.data);
+
+            // エラーの種類に応じて処理
+            if (sendError.data?.error === 'not_in_channel') {
+              // ボットがチャンネルにいない場合
+              console.log('⚠️ ボットがチャンネルのメンバーではありません');
+
+              // パブリックチャンネルなら参加を試みる
+              if (!doctorChannel.is_private) {
+                try {
+                  console.log('チャンネルへの参加を試みます...');
+                  await slackClient.conversations.join({
+                    channel: doctorChannel.id
+                  });
+
+                  // 再度送信
+                  await slackClient.chat.postMessage({
+                    channel: doctorChannel.id,
+                    text: '新しい質問が届きました',
+                    blocks: [
+                      {
+                        type: 'header',
+                        text: {
+                          type: 'plain_text',
+                          text: '質問が届きました'
+                        }
+                      },
+                      {
+                        type: 'section',
+                        text: {
+                          type: 'mrkdwn',
+                          text: `*質問者:* <@${payload.user.id}>`
+                        }
+                      },
+                      {
+                        type: 'section',
+                        fields: [
+                          {
+                            type: 'mrkdwn',
+                            text: `*患者ID:*\n${formData.patientId}`
+                          },
+                          {
+                            type: 'mrkdwn',
+                            text: `*質問タイプ:*\n${formData.questionTypeLabel}`
+                          }
+                        ]
+                      },
+                      {
+                        type: 'section',
+                        text: {
+                          type: 'mrkdwn',
+                          text: `*質問内容:*\n${formData.questionContent}`
+                        }
+                      },
+                      {
+                        type: 'divider'
+                      },
+                      {
+                        type: 'section',
+                        text: {
+                          type: 'mrkdwn',
+                          text: '回答をお願いします。'
+                        }
+                      },
+                      {
+                        type: 'actions',
+                        elements: [
+                          {
+                            type: 'button',
+                            text: {
+                              type: 'plain_text',
+                              text: '修正・追記する'
+                            },
+                            style: 'danger',
+                            action_id: 'modify_question',
+                            value: JSON.stringify({
+                              questionId: `${formData.userId}_${Date.now()}`,
+                              patientId: formData.patientId,
+                              questionType: formData.questionType,
+                              doctorName: formData.doctorName,
+                              doctorId: formData.doctorId,
+                              questionContent: formData.questionContent,
+                              userId: formData.userId,
+                              doctorChannelId: doctorChannel.id
+                            })
+                          },
+                          {
+                            type: 'button',
+                            text: {
+                              type: 'plain_text',
+                              text: '承認する'
+                            },
+                            style: 'primary',
+                            action_id: 'approve_question',
+                            value: JSON.stringify({
+                              questionId: `${formData.userId}_${Date.now()}`,
+                              patientId: formData.patientId,
+                              questionType: formData.questionType,
+                              doctorName: formData.doctorName,
+                              doctorId: formData.doctorId,
+                              questionContent: formData.questionContent,
+                              userId: formData.userId,
+                              doctorChannelId: doctorChannel.id
+                            })
+                          }
+                        ]
+                      }
+                    ]
+                  });
+                  console.log('✅ 参加後、医師チャンネルへの通知送信完了');
+                } catch (joinError) {
+                  console.error('❌ チャンネル参加エラー:', joinError.data);
+                }
+              } else {
+                console.log('プライベートチャンネルへは手動で招待する必要があります');
+                console.log('Slackで以下を実行してください:');
+                console.log(`  /invite @${process.env.BOT_NAME || 'accountingbot'}`);
+              }
+            } else if (sendError.data?.error === 'channel_not_found') {
+              console.error('❌ チャンネルが見つかりません（削除された可能性）');
+            } else if (sendError.data?.error === 'is_archived') {
+              console.error('❌ チャンネルがアーカイブされています');
+            } else {
+              console.error('❌ 予期しないエラー:', sendError.data?.error);
+            }
+          }
         } else {
           console.log(`⚠️ 医師ID: ${formData.doctorId} に対応するチャンネルが見つかりません`);
           console.log('検索したパターン:');
@@ -1075,7 +1255,7 @@ const PORT = process.env.PORT || 3000;
 
 const server = app.listen(PORT, async () => {
   console.log('\n========================================');
-  console.log('🚀 Slack Question Bot v2.0');
+  console.log('🚀 先生質問さん v2.0');
   console.log('========================================');
   console.log(`📡 サーバーポート: ${PORT}`);
   console.log(`🔗 URL: http://localhost:${PORT}`);

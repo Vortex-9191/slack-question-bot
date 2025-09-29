@@ -16,14 +16,14 @@
 ### OAuth Scopes (Bot Token Scopes)
 以下のスコープをすべて追加：
 
-#### 必須スコープ
+#### 必須スコープ（プライベートチャンネルアクセスに必要）
 - `channels:history` - チャンネルメッセージ履歴
 - `channels:join` - パブリックチャンネルへの参加
 - `channels:read` - パブリックチャンネル情報の読み取り
 - `chat:write` - メッセージの送信
 - `commands` - スラッシュコマンド
 - `groups:history` - プライベートチャンネルの履歴
-- `groups:read` - プライベートチャンネル情報の読み取り ⚠️ **重要**
+- `groups:read` - プライベートチャンネル情報の読み取り **🔴 最重要：プライベートチャンネルアクセスに必須**
 - `groups:write` - プライベートチャンネルへの投稿
 - `im:history` - DM履歴
 - `im:read` - DM情報の読み取り
@@ -31,6 +31,8 @@
 - `reactions:write` - リアクション追加
 - `team:read` - ワークスペース情報
 - `users:read` - ユーザー情報
+
+**重要**: `groups:read`スコープがないとプライベートチャンネル（d1_999_葛井テストなど）にアクセスできません。
 
 ### Install App
 1. スコープを追加後、**「Install to Workspace」**または**「Reinstall to Workspace」**をクリック

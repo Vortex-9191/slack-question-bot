@@ -1,7 +1,7 @@
 {
-  "name": "slack-question-bot",
-  "version": "1.0.0",
-  "description": "Slackで質問を管理する自由記述チャットボット",
+  "name": "sensei-shitsumon-san",
+  "version": "2.0.0",
+  "description": "先生質問さん - 医師への質問管理Slackボット",
   "main": "index.js",
   "scripts": {
     "start": "node app.js",
