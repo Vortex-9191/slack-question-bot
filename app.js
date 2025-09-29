@@ -271,7 +271,7 @@ app.post('/slack/slash-commands', async (req, res) => {
                   action_id: 'doctor_id',
                   placeholder: {
                     type: 'plain_text',
-                    text: '例: D001'
+                    text: '例: 999'
                   }
                 },
                 label: {
