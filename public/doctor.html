@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>タスク管理 - 質問管理システム</title>
+  <title>Quick Board - 質問管理</title>
   <style>
     * {
       box-sizing: border-box;
@@ -18,141 +18,190 @@
     .navbar {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
-      padding: 16px 24px;
+      padding: 12px 20px;
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
     .back-btn {
       background: rgba(255,255,255,0.2);
       border: none;
       color: white;
-      padding: 8px 16px;
-      border-radius: 8px;
+      padding: 6px 12px;
+      border-radius: 6px;
       cursor: pointer;
       text-decoration: none;
-      font-size: 14px;
+      font-size: 13px;
     }
     .back-btn:hover {
       background: rgba(255,255,255,0.3);
     }
     .navbar h1 {
-      font-size: 20px;
+      font-size: 16px;
       flex: 1;
     }
     .refresh-btn {
       background: rgba(255,255,255,0.2);
       border: none;
       color: white;
-      padding: 8px 16px;
-      border-radius: 8px;
+      padding: 6px 12px;
+      border-radius: 6px;
       cursor: pointer;
-      font-size: 14px;
+      font-size: 13px;
     }
     .refresh-btn:hover {
       background: rgba(255,255,255,0.3);
     }
 
     .container {
-      max-width: 900px;
+      max-width: 800px;
       margin: 0 auto;
-      padding: 24px;
+      padding: 16px;
     }
 
-    .stats-bar {
-      display: flex;
-      gap: 16px;
-      margin-bottom: 24px;
-      flex-wrap: wrap;
-    }
-    .stat-card {
-      background: white;
-      padding: 16px 24px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      min-width: 120px;
-    }
-    .stat-card .label {
-      font-size: 12px;
-      color: #6b7280;
-      margin-bottom: 4px;
-    }
-    .stat-card .value {
-      font-size: 28px;
-      font-weight: bold;
-    }
-    .stat-card.pending .value { color: #f59e0b; }
-    .stat-card.answered .value { color: #10b981; }
-    .stat-card.approved .value { color: #3b82f6; }
-
-    .filters {
+    /* 検索・フィルターバー */
+    .toolbar {
       display: flex;
       gap: 8px;
-      margin-bottom: 24px;
+      margin-bottom: 16px;
       flex-wrap: wrap;
+      align-items: center;
     }
-    .filter-btn {
-      padding: 10px 20px;
-      border: none;
+    .search-box {
+      flex: 1;
+      min-width: 200px;
+      position: relative;
+    }
+    .search-box input {
+      width: 100%;
+      padding: 10px 12px 10px 36px;
+      border: 1px solid #e5e7eb;
       border-radius: 8px;
-      cursor: pointer;
       font-size: 14px;
       background: white;
-      color: #374151;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .search-box input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    .search-box::before {
+      content: "🔍";
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 14px;
+    }
+    .toggle-btn {
+      padding: 10px 16px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      background: white;
+      cursor: pointer;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
       transition: all 0.2s;
     }
-    .filter-btn:hover {
-      background: #f3f4f6;
+    .toggle-btn:hover {
+      background: #f9fafb;
     }
-    .filter-btn.active {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
+    .toggle-btn.active {
+      background: #fef3c7;
+      border-color: #f59e0b;
+      color: #92400e;
     }
 
-    .questions-list {
+    /* 統計バー */
+    .stats-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .stat-chip {
+      background: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .stat-chip .count {
+      font-weight: bold;
+    }
+    .stat-chip.pending .count { color: #f59e0b; }
+    .stat-chip.answered .count { color: #10b981; }
+    .stat-chip.approved .count { color: #3b82f6; }
+
+    /* タスクカード */
+    .tasks-list {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 12px;
     }
-    .question-card {
+    .task-card {
       background: white;
-      padding: 20px;
       border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      border-left: 4px solid #6b7280;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      overflow: hidden;
+      border-left: 4px solid #9ca3af;
+      transition: box-shadow 0.2s;
     }
-    .question-card.pending { border-left-color: #f59e0b; }
-    .question-card.answered { border-left-color: #10b981; }
-    .question-card.approved { border-left-color: #3b82f6; }
+    .task-card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .task-card.pending { border-left-color: #f59e0b; }
+    .task-card.answered { border-left-color: #10b981; }
+    .task-card.approved { border-left-color: #3b82f6; }
+    .task-card.urgent {
+      border-left-color: #ef4444;
+      background: #fef2f2;
+    }
 
-    .question-header {
+    .task-header {
+      padding: 12px 16px;
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-bottom: 12px;
+      border-bottom: 1px solid #f3f4f6;
     }
-    .patient-info {
+    .task-info {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 8px;
+      flex-wrap: wrap;
     }
     .patient-id {
-      font-weight: bold;
-      font-size: 16px;
+      font-weight: 600;
+      font-size: 14px;
       color: #1f2937;
     }
     .question-type {
-      font-size: 12px;
+      font-size: 11px;
       background: #e5e7eb;
-      padding: 4px 8px;
+      padding: 2px 8px;
       border-radius: 4px;
       color: #4b5563;
     }
+    .urgent-badge {
+      font-size: 11px;
+      background: #fee2e2;
+      color: #dc2626;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 500;
+    }
     .status-badge {
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
       font-weight: 500;
       color: white;
     }
@@ -160,83 +209,216 @@
     .status-badge.answered { background: #10b981; }
     .status-badge.approved { background: #3b82f6; }
 
-    .question-content {
-      color: #374151;
-      line-height: 1.6;
-      margin-bottom: 12px;
-      font-size: 15px;
-      white-space: pre-wrap;
+    .task-content {
+      padding: 12px 16px;
     }
-    .question-meta {
+    .question-text {
+      color: #374151;
+      font-size: 14px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      margin-bottom: 8px;
+    }
+    .task-meta {
+      font-size: 12px;
+      color: #9ca3af;
       display: flex;
       justify-content: space-between;
-      font-size: 13px;
-      color: #9ca3af;
     }
 
-    .answer-section {
-      margin-top: 16px;
-      padding-top: 16px;
+    /* クイックリプライ */
+    .quick-reply-section {
+      padding: 12px 16px;
+      background: #f9fafb;
       border-top: 1px solid #e5e7eb;
     }
-    .answer-label {
-      font-size: 12px;
-      color: #6b7280;
+    .quick-reply-chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
       margin-bottom: 8px;
-      font-weight: 500;
     }
-    .answer-content {
-      background: #f0fdf4;
-      padding: 12px 16px;
+    .chip {
+      padding: 6px 14px;
+      border-radius: 16px;
+      font-size: 13px;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+    .chip.primary {
+      background: #667eea;
+      color: white;
+    }
+    .chip.primary:hover {
+      background: #5a67d8;
+    }
+    .chip.secondary {
+      background: #e5e7eb;
+      color: #374151;
+    }
+    .chip.secondary:hover {
+      background: #d1d5db;
+    }
+    .chip.success {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    .chip.success:hover {
+      background: #a7f3d0;
+    }
+    .chip.warning {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    .chip.warning:hover {
+      background: #fde68a;
+    }
+
+    .custom-reply {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .custom-reply input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid #e5e7eb;
       border-radius: 8px;
+      font-size: 13px;
+    }
+    .custom-reply input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    .custom-reply button {
+      padding: 8px 16px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .custom-reply button:hover {
+      background: #5a67d8;
+    }
+    .custom-reply button:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+
+    /* 回答セクション */
+    .answer-section {
+      padding: 12px 16px;
+      background: #f0fdf4;
+      border-top: 1px solid #d1fae5;
+    }
+    .answer-label {
+      font-size: 11px;
+      color: #059669;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+    .answer-text {
       color: #166534;
-      line-height: 1.6;
+      font-size: 14px;
+      line-height: 1.5;
       white-space: pre-wrap;
     }
     .answer-meta {
-      font-size: 12px;
-      color: #9ca3af;
-      margin-top: 8px;
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 6px;
     }
 
+    /* 空状態 */
     .empty-state {
       text-align: center;
       padding: 60px 20px;
       color: #9ca3af;
     }
-    .empty-state-icon {
-      font-size: 64px;
-      margin-bottom: 16px;
+    .empty-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
     }
 
     .loading {
       text-align: center;
-      padding: 60px 20px;
+      padding: 40px;
       color: #6b7280;
     }
+
+    /* 送信中オーバーレイ */
+    .sending-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+    }
+    .sending-box {
+      background: white;
+      padding: 24px 40px;
+      border-radius: 12px;
+      text-align: center;
+    }
+    .sending-box .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #e5e7eb;
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
   <nav class="navbar">
-    <a href="/doctors" class="back-btn">← 一覧</a>
-    <h1 id="page-title">質問一覧</h1>
+    <a href="/doctors" class="back-btn">← 戻る</a>
+    <h1 id="page-title">Quick Board</h1>
     <button class="refresh-btn" onclick="loadTasks()">更新</button>
   </nav>
 
   <div class="container">
-    <div class="stats-bar" id="stats-bar">
-      <!-- 統計が動的に入る -->
+    <!-- ツールバー -->
+    <div class="toolbar">
+      <div class="search-box">
+        <input type="text" id="search-input" placeholder="患者ID・内容で検索...">
+      </div>
+      <button class="toggle-btn" id="urgent-toggle" onclick="toggleUrgentOnly()">
+        🚨 急ぎのみ
+      </button>
+      <button class="toggle-btn" id="history-toggle" onclick="toggleHistory()">
+        📋 履歴
+      </button>
     </div>
 
-    <div class="filters" id="filters">
-      <button class="filter-btn active" data-status="all">全件</button>
-      <button class="filter-btn" data-status="pending">未対応</button>
-      <button class="filter-btn" data-status="answered">対応済</button>
-      <button class="filter-btn" data-status="approved">完了</button>
-    </div>
+    <!-- 統計 -->
+    <div class="stats-bar" id="stats-bar"></div>
 
-    <div id="questions-list" class="questions-list">
+    <!-- タスクリスト -->
+    <div id="tasks-list" class="tasks-list">
       <div class="loading">読み込み中...</div>
+    </div>
+  </div>
+
+  <!-- 送信中オーバーレイ -->
+  <div class="sending-overlay hidden" id="sending-overlay">
+    <div class="sending-box">
+      <div class="spinner"></div>
+      <div>送信中...</div>
     </div>
   </div>
 
@@ -247,22 +429,33 @@
     // URLから医師IDを取得
     const pathParts = window.location.pathname.split('/');
     const doctorId = pathParts[pathParts.length - 1];
-    let currentFilter = 'all';
+
     let allQuestions = [];
+    let urgentOnly = false;
+    let showHistory = false;
+    let searchQuery = '';
 
-    // ページタイトルを設定
-    document.getElementById('page-title').textContent = `${doctorId} 先生`;
-    document.title = `${doctorId} - 質問一覧`;
+    // ページタイトル設定
+    document.getElementById('page-title').textContent = `${doctorId} - Quick Board`;
+    document.title = `${doctorId} - Quick Board`;
 
-    // フィルターボタンのイベント設定
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentFilter = btn.dataset.status;
-        renderQuestions();
-      });
+    // 検索入力
+    document.getElementById('search-input').addEventListener('input', (e) => {
+      searchQuery = e.target.value.toLowerCase();
+      renderTasks();
     });
+
+    function toggleUrgentOnly() {
+      urgentOnly = !urgentOnly;
+      document.getElementById('urgent-toggle').classList.toggle('active', urgentOnly);
+      renderTasks();
+    }
+
+    function toggleHistory() {
+      showHistory = !showHistory;
+      document.getElementById('history-toggle').classList.toggle('active', showHistory);
+      renderTasks();
+    }
 
     async function loadTasks() {
       try {
@@ -281,63 +474,73 @@
         const result = await response.json();
 
         if (!result.success) {
-          throw new Error(result.error || 'データ取得に失敗しました');
+          throw new Error(result.error || 'データ取得に失敗');
         }
 
         allQuestions = result.data || [];
         renderStats();
-        renderQuestions();
+        renderTasks();
 
       } catch (error) {
         console.error('Error:', error);
-        document.getElementById('questions-list').innerHTML = `
+        document.getElementById('tasks-list').innerHTML = `
           <div class="empty-state">
-            <div class="empty-state-icon">❌</div>
-            <p>データの読み込みに失敗しました</p>
-            <p style="font-size: 14px; margin-top: 8px;">${error.message}</p>
+            <div class="empty-icon">❌</div>
+            <p>読み込みエラー</p>
+            <p style="font-size:12px;margin-top:4px;">${error.message}</p>
           </div>
         `;
       }
     }
 
     function renderStats() {
-      const stats = {
-        total: allQuestions.length,
-        pending: allQuestions.filter(q => q.status === 'pending').length,
-        answered: allQuestions.filter(q => q.status === 'answered').length,
-        approved: allQuestions.filter(q => q.status === 'approved').length,
-      };
+      const pending = allQuestions.filter(q => q.status === 'pending').length;
+      const answered = allQuestions.filter(q => q.status === 'answered').length;
+      const approved = allQuestions.filter(q => q.status === 'approved').length;
 
       document.getElementById('stats-bar').innerHTML = `
-        <div class="stat-card">
-          <div class="label">全件</div>
-          <div class="value">${stats.total}</div>
+        <div class="stat-chip pending">
+          <span>未対応</span>
+          <span class="count">${pending}</span>
         </div>
-        <div class="stat-card pending">
-          <div class="label">未対応</div>
-          <div class="value">${stats.pending}</div>
+        <div class="stat-chip answered">
+          <span>対応済</span>
+          <span class="count">${answered}</span>
         </div>
-        <div class="stat-card answered">
-          <div class="label">対応済</div>
-          <div class="value">${stats.answered}</div>
-        </div>
-        <div class="stat-card approved">
-          <div class="label">完了</div>
-          <div class="value">${stats.approved}</div>
+        <div class="stat-chip approved">
+          <span>完了</span>
+          <span class="count">${approved}</span>
         </div>
       `;
     }
 
-    function renderQuestions() {
-      const filtered = currentFilter === 'all'
-        ? allQuestions
-        : allQuestions.filter(q => q.status === currentFilter);
+    function renderTasks() {
+      let filtered = allQuestions;
+
+      // 履歴モードでなければpendingのみ
+      if (!showHistory) {
+        filtered = filtered.filter(q => q.status === 'pending');
+      }
+
+      // 急ぎのみフィルタ（question_typeが'urgent'の場合）
+      if (urgentOnly) {
+        filtered = filtered.filter(q => q.question_type === 'urgent' || q.is_urgent);
+      }
+
+      // 検索フィルタ
+      if (searchQuery) {
+        filtered = filtered.filter(q =>
+          (q.patient_id && q.patient_id.toLowerCase().includes(searchQuery)) ||
+          (q.question_content && q.question_content.toLowerCase().includes(searchQuery)) ||
+          (q.user_name && q.user_name.toLowerCase().includes(searchQuery))
+        );
+      }
 
       if (filtered.length === 0) {
-        document.getElementById('questions-list').innerHTML = `
+        document.getElementById('tasks-list').innerHTML = `
           <div class="empty-state">
-            <div class="empty-state-icon">📭</div>
-            <p>質問がありません</p>
+            <div class="empty-icon">${showHistory ? '📭' : '✅'}</div>
+            <p>${showHistory ? '該当する質問がありません' : '未対応の質問はありません'}</p>
           </div>
         `;
         return;
@@ -349,45 +552,120 @@
         approved: '完了'
       };
 
-      document.getElementById('questions-list').innerHTML = filtered.map(q => `
-        <div class="question-card ${q.status}">
-          <div class="question-header">
-            <div class="patient-info">
-              <span class="patient-id">患者ID: ${q.patient_id}</span>
-              <span class="question-type">${q.question_type_label || q.question_type}</span>
+      document.getElementById('tasks-list').innerHTML = filtered.map(q => {
+        const isUrgent = q.question_type === 'urgent' || q.is_urgent;
+
+        return `
+          <div class="task-card ${q.status} ${isUrgent ? 'urgent' : ''}" data-id="${q.question_id}">
+            <div class="task-header">
+              <div class="task-info">
+                <span class="patient-id">${q.patient_id}</span>
+                <span class="question-type">${q.question_type_label || q.question_type}</span>
+                ${isUrgent ? '<span class="urgent-badge">急ぎ</span>' : ''}
+              </div>
+              <span class="status-badge ${q.status}">${statusLabels[q.status]}</span>
             </div>
-            <span class="status-badge ${q.status}">${statusLabels[q.status] || q.status}</span>
-          </div>
-          <div class="question-content">${escapeHtml(q.question_content)}</div>
-          <div class="question-meta">
-            <span>質問者: ${q.user_name || q.user_id}</span>
-            <span>${formatDate(q.created_at)}</span>
-          </div>
-          ${q.answers && q.answers.length > 0 ? `
-            <div class="answer-section">
-              <div class="answer-label">回答</div>
-              ${q.answers.map(a => `
-                <div class="answer-content">${escapeHtml(a.answer_content)}</div>
-                <div class="answer-meta">回答者: ${a.answered_by_name || a.answered_by} | ${formatDate(a.created_at)}</div>
-              `).join('')}
+            <div class="task-content">
+              <div class="question-text">${escapeHtml(q.question_content)}</div>
+              <div class="task-meta">
+                <span>${q.user_name || q.user_id}</span>
+                <span>${formatDate(q.created_at)}</span>
+              </div>
             </div>
-          ` : ''}
-        </div>
-      `).join('');
+            ${q.status === 'pending' ? `
+              <div class="quick-reply-section">
+                <div class="quick-reply-chips">
+                  <button class="chip primary" onclick="quickReply('${q.question_id}', '了解しました')">了解</button>
+                  <button class="chip success" onclick="quickReply('${q.question_id}', '処方しました')">処方済</button>
+                  <button class="chip warning" onclick="quickReply('${q.question_id}', '後で確認します')">後で確認</button>
+                  <button class="chip secondary" onclick="quickReply('${q.question_id}', '電話で連絡します')">電話連絡</button>
+                </div>
+                <div class="custom-reply">
+                  <input type="text" id="reply-${q.question_id}" placeholder="カスタム返信...">
+                  <button onclick="sendCustomReply('${q.question_id}')">送信</button>
+                </div>
+              </div>
+            ` : ''}
+            ${q.answers && q.answers.length > 0 ? q.answers.map(a => `
+              <div class="answer-section">
+                <div class="answer-label">回答</div>
+                <div class="answer-text">${escapeHtml(a.answer_content)}</div>
+                <div class="answer-meta">${a.answered_by_name || a.answered_by} | ${formatDate(a.created_at)}</div>
+              </div>
+            `).join('') : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function quickReply(questionId, message) {
+      await sendReply(questionId, message);
+    }
+
+    async function sendCustomReply(questionId) {
+      const input = document.getElementById(`reply-${questionId}`);
+      const message = input.value.trim();
+      if (!message) return;
+      await sendReply(questionId, message);
+    }
+
+    async function sendReply(questionId, message) {
+      document.getElementById('sending-overlay').classList.remove('hidden');
+
+      try {
+        // 回答を保存
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/save-question`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            action: 'save_answer',
+            questionId: questionId,
+            answerContent: message,
+            answeredBy: doctorId,
+            answeredByName: doctorId + '先生'
+          }),
+        });
+
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.error || '送信に失敗しました');
+        }
+
+        // リロード
+        await loadTasks();
+
+      } catch (error) {
+        console.error('Error:', error);
+        alert('送信に失敗しました: ' + error.message);
+      } finally {
+        document.getElementById('sending-overlay').classList.add('hidden');
+      }
     }
 
     function formatDate(dateStr) {
       const date = new Date(dateStr);
-      return date.toLocaleString('ja-JP', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
+      const now = new Date();
+      const diff = now - date;
+
+      // 1時間以内
+      if (diff < 60 * 60 * 1000) {
+        const mins = Math.floor(diff / 60000);
+        return mins <= 0 ? 'たった今' : `${mins}分前`;
+      }
+      // 今日
+      if (date.toDateString() === now.toDateString()) {
+        return date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+      }
+      // それ以外
+      return date.toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     }
 
     function escapeHtml(text) {
+      if (!text) return '';
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;

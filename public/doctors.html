@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>医師一覧 - 質問管理システム</title>
+  <title>Quick Board - 医師選択</title>
   <style>
     * {
       box-sizing: border-box;
@@ -17,83 +17,85 @@
       padding: 40px 20px;
     }
     .container {
-      max-width: 800px;
+      max-width: 600px;
       margin: 0 auto;
     }
     .header {
       text-align: center;
       color: white;
-      margin-bottom: 40px;
+      margin-bottom: 32px;
     }
     .header h1 {
-      font-size: 32px;
-      margin-bottom: 8px;
+      font-size: 28px;
+      margin-bottom: 4px;
     }
     .header p {
-      opacity: 0.9;
+      opacity: 0.85;
+      font-size: 14px;
     }
-    .doctors-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-      gap: 20px;
+
+    .doctors-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
     .doctor-card {
       background: white;
-      border-radius: 16px;
-      padding: 24px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      border-radius: 12px;
+      padding: 16px 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
       cursor: pointer;
       transition: transform 0.2s, box-shadow 0.2s;
       text-decoration: none;
       color: inherit;
-      display: block;
+      display: flex;
+      align-items: center;
+      gap: 16px;
     }
     .doctor-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 15px 50px rgba(0,0,0,0.3);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.2);
     }
     .doctor-avatar {
-      width: 60px;
-      height: 60px;
+      width: 48px;
+      height: 48px;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       color: white;
-      font-size: 24px;
+      font-size: 18px;
       font-weight: bold;
-      margin-bottom: 16px;
+      flex-shrink: 0;
+    }
+    .doctor-info {
+      flex: 1;
     }
     .doctor-name {
-      font-size: 20px;
-      font-weight: bold;
+      font-size: 16px;
+      font-weight: 600;
       color: #1f2937;
-      margin-bottom: 4px;
+      margin-bottom: 2px;
     }
     .doctor-id {
-      font-size: 14px;
-      color: #6b7280;
-      margin-bottom: 16px;
+      font-size: 12px;
+      color: #9ca3af;
     }
     .doctor-stats {
       display: flex;
       gap: 12px;
     }
     .stat {
-      flex: 1;
       text-align: center;
-      padding: 8px;
-      background: #f9fafb;
-      border-radius: 8px;
     }
     .stat-value {
       font-size: 20px;
       font-weight: bold;
     }
     .stat-label {
-      font-size: 11px;
-      color: #6b7280;
+      font-size: 10px;
+      color: #9ca3af;
     }
     .stat.pending .stat-value { color: #f59e0b; }
     .stat.answered .stat-value { color: #10b981; }
@@ -104,42 +106,50 @@
       padding: 40px;
     }
     .error {
-      background: #fee2e2;
+      background: rgba(255,255,255,0.95);
       color: #dc2626;
       padding: 16px;
-      border-radius: 8px;
+      border-radius: 12px;
       text-align: center;
     }
-
-    .add-doctor {
-      background: rgba(255,255,255,0.2);
-      border: 2px dashed rgba(255,255,255,0.5);
-      border-radius: 16px;
-      padding: 24px;
+    .empty-state {
       text-align: center;
       color: white;
+      padding: 60px 20px;
+    }
+    .empty-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+
+    .refresh-btn {
+      display: block;
+      margin: 24px auto 0;
+      padding: 12px 24px;
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: white;
+      border-radius: 8px;
+      font-size: 14px;
       cursor: pointer;
-      transition: background 0.2s;
     }
-    .add-doctor:hover {
+    .refresh-btn:hover {
       background: rgba(255,255,255,0.3);
-    }
-    .add-doctor-icon {
-      font-size: 40px;
-      margin-bottom: 8px;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>質問ボード</h1>
+      <h1>Quick Board</h1>
       <p>担当医師を選択</p>
     </div>
 
-    <div id="doctors-list" class="doctors-grid">
+    <div id="doctors-list" class="doctors-list">
       <div class="loading">読み込み中...</div>
     </div>
+
+    <button class="refresh-btn" onclick="loadDoctors()">更新</button>
   </div>
 
   <script>
@@ -160,7 +170,7 @@
         const result = await response.json();
 
         if (!result.success) {
-          throw new Error(result.error || 'データ取得に失敗しました');
+          throw new Error(result.error || 'データ取得に失敗');
         }
 
         // 医師ごとに集計
@@ -185,7 +195,7 @@
       } catch (error) {
         console.error('Error:', error);
         document.getElementById('doctors-list').innerHTML = `
-          <div class="error">データの読み込みに失敗しました: ${error.message}</div>
+          <div class="error">読み込みエラー: ${error.message}</div>
         `;
       }
     }
@@ -195,19 +205,24 @@
 
       if (doctors.length === 0) {
         container.innerHTML = `
-          <div style="grid-column: 1 / -1; text-align: center; color: white; padding: 40px;">
-            <p style="font-size: 48px; margin-bottom: 16px;">📭</p>
+          <div class="empty-state">
+            <div class="empty-icon">📭</div>
             <p>質問はありません</p>
           </div>
         `;
         return;
       }
 
+      // 未対応が多い順にソート
+      doctors.sort((a, b) => b.pending - a.pending);
+
       container.innerHTML = doctors.map(doctor => `
         <a href="/doctor/${doctor.id}" class="doctor-card">
           <div class="doctor-avatar">${(doctor.name || doctor.id).charAt(0)}</div>
-          <div class="doctor-name">${doctor.name || doctor.id}先生</div>
-          <div class="doctor-id">ID: ${doctor.id}</div>
+          <div class="doctor-info">
+            <div class="doctor-name">${doctor.name || doctor.id}先生</div>
+            <div class="doctor-id">ID: ${doctor.id}</div>
+          </div>
           <div class="doctor-stats">
             <div class="stat pending">
               <div class="stat-value">${doctor.pending}</div>
