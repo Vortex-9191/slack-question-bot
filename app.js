@@ -7,6 +7,41 @@ const crypto = require('crypto');
 const app = express();
 
 // ===============================
+// Supabase Edge Function呼び出し
+// ===============================
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+
+async function callSupabaseFunction(action, data) {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    console.log('⚠️ Supabase未設定のためスキップ');
+    return null;
+  }
+
+  try {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/save-question`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({ action, ...data }),
+    });
+
+    const result = await response.json();
+    if (!result.success) {
+      console.error('❌ Supabase Edge Function エラー:', result.error);
+    } else {
+      console.log('✅ Supabase保存成功:', action);
+    }
+    return result;
+  } catch (error) {
+    console.error('❌ Supabase呼び出しエラー:', error);
+    return null;
+  }
+}
+
+// ===============================
 // 環境変数チェック
 // ===============================
 console.log('🔧 環境変数チェック...');
@@ -530,6 +565,16 @@ app.post('/slack/interactive', async (req, res) => {
 
       console.log('修正・追記の回答を処理中...');
 
+      // Supabaseに回答を保存（非同期で実行、エラーでも処理続行）
+      if (originalData.questionId) {
+        callSupabaseFunction('save_answer', {
+          questionId: originalData.questionId,
+          answerContent: answerContent,
+          answeredBy: originalData.modifierId,
+          answeredByName: originalData.doctorName,
+        }).catch(err => console.error('Supabase保存エラー（回答）:', err));
+      }
+
       // モーダルを閉じる
       res.status(200).json({
         response_action: 'clear'
@@ -643,7 +688,41 @@ app.post('/slack/interactive', async (req, res) => {
           });
         }
 
-        // 4. リアクションを追加
+        // 4. 医師チャンネルのスレッドにも回答を投稿（ドクター側で回答を確認できるように）
+        if (originalData.channelId && originalData.messageTs) {
+          await slackClient.chat.postMessage({
+            channel: originalData.channelId,
+            thread_ts: originalData.messageTs,
+            text: '回答を送信しました',
+            blocks: [
+              {
+                type: 'section',
+                text: {
+                  type: 'mrkdwn',
+                  text: `✅ *回答を送信しました*`
+                }
+              },
+              {
+                type: 'section',
+                text: {
+                  type: 'mrkdwn',
+                  text: `*回答内容:*\n${answerContent}`
+                }
+              },
+              {
+                type: 'context',
+                elements: [
+                  {
+                    type: 'mrkdwn',
+                    text: `回答者: <@${originalData.modifierId}> | ${new Date().toLocaleString('ja-JP')}`
+                  }
+                ]
+              }
+            ]
+          });
+        }
+
+        // 5. リアクションを追加
         await slackClient.reactions.add({
           name: 'pencil2',
           channel: originalData.channelId,
@@ -668,6 +747,7 @@ app.post('/slack/interactive', async (req, res) => {
       const originalChannelId = metadata.channel_id;
 
       // フォームデータ取得
+      const questionId = `${payload.user.id}_${Date.now()}`;
       const formData = {
         patientId: values.patient_id_block.patient_id.value,
         questionType: values.question_type_block.question_type.selected_option.value,
@@ -678,9 +758,23 @@ app.post('/slack/interactive', async (req, res) => {
         userId: payload.user.id,
         userName: payload.user.name,
         timestamp: new Date().toISOString(),
-        originalChannelId: originalChannelId
+        originalChannelId: originalChannelId,
+        questionId: questionId
       };
 
+      // Supabaseに質問を保存（非同期で実行、エラーでも処理続行）
+      callSupabaseFunction('save_question', {
+        questionId: formData.questionId,
+        patientId: formData.patientId,
+        questionType: formData.questionType,
+        questionTypeLabel: formData.questionTypeLabel,
+        doctorName: formData.doctorName,
+        doctorId: formData.doctorId,
+        questionContent: formData.questionContent,
+        userId: formData.userId,
+        userName: formData.userName,
+        originalChannelId: formData.originalChannelId,
+      }).catch(err => console.error('Supabase保存エラー（質問）:', err));
 
       console.log('フォームデータ:', {
         ...formData,
@@ -996,7 +1090,7 @@ app.post('/slack/interactive', async (req, res) => {
                     style: 'danger',
                     action_id: 'modify_question',
                     value: JSON.stringify({
-                      questionId: `${formData.userId}_${Date.now()}`,
+                      questionId: formData.questionId,
                       patientId: formData.patientId,
                       questionType: formData.questionType,
                       questionTypeLabel: formData.questionTypeLabel,
@@ -1018,7 +1112,7 @@ app.post('/slack/interactive', async (req, res) => {
                     style: 'primary',
                     action_id: 'approve_question',
                     value: JSON.stringify({
-                      questionId: `${formData.userId}_${Date.now()}`,
+                      questionId: formData.questionId,
                       patientId: formData.patientId,
                       questionType: formData.questionType,
                       questionTypeLabel: formData.questionTypeLabel,
