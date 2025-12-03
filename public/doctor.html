@@ -218,8 +218,8 @@
 </head>
 <body>
   <nav class="navbar">
-    <a href="/doctors" class="back-btn">← 戻る</a>
-    <h1 id="page-title">タスク管理</h1>
+    <a href="/doctors" class="back-btn">← 一覧</a>
+    <h1 id="page-title">質問一覧</h1>
     <button class="refresh-btn" onclick="loadTasks()">更新</button>
   </nav>
 
@@ -229,10 +229,10 @@
     </div>
 
     <div class="filters" id="filters">
-      <button class="filter-btn active" data-status="all">すべて</button>
-      <button class="filter-btn" data-status="pending">対応待ち</button>
-      <button class="filter-btn" data-status="answered">回答済み</button>
-      <button class="filter-btn" data-status="approved">承認済み</button>
+      <button class="filter-btn active" data-status="all">全件</button>
+      <button class="filter-btn" data-status="pending">未対応</button>
+      <button class="filter-btn" data-status="answered">対応済</button>
+      <button class="filter-btn" data-status="approved">完了</button>
     </div>
 
     <div id="questions-list" class="questions-list">
@@ -251,8 +251,8 @@
     let allQuestions = [];
 
     // ページタイトルを設定
-    document.getElementById('page-title').textContent = `${doctorId} 先生のタスク`;
-    document.title = `${doctorId} - タスク管理`;
+    document.getElementById('page-title').textContent = `${doctorId} 先生`;
+    document.title = `${doctorId} - 質問一覧`;
 
     // フィルターボタンのイベント設定
     document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -310,19 +310,19 @@
 
       document.getElementById('stats-bar').innerHTML = `
         <div class="stat-card">
-          <div class="label">合計</div>
+          <div class="label">全件</div>
           <div class="value">${stats.total}</div>
         </div>
         <div class="stat-card pending">
-          <div class="label">対応待ち</div>
+          <div class="label">未対応</div>
           <div class="value">${stats.pending}</div>
         </div>
         <div class="stat-card answered">
-          <div class="label">回答済み</div>
+          <div class="label">対応済</div>
           <div class="value">${stats.answered}</div>
         </div>
         <div class="stat-card approved">
-          <div class="label">承認済み</div>
+          <div class="label">完了</div>
           <div class="value">${stats.approved}</div>
         </div>
       `;
@@ -344,9 +344,9 @@
       }
 
       const statusLabels = {
-        pending: '対応待ち',
-        answered: '回答済み',
-        approved: '承認済み'
+        pending: '未対応',
+        answered: '対応済',
+        approved: '完了'
       };
 
       document.getElementById('questions-list').innerHTML = filtered.map(q => `

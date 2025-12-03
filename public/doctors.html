@@ -133,8 +133,8 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1>質問管理システム</h1>
-      <p>医師を選択してタスクを確認</p>
+      <h1>質問ボード</h1>
+      <p>担当医師を選択</p>
     </div>
 
     <div id="doctors-list" class="doctors-grid">
@@ -197,7 +197,7 @@
         container.innerHTML = `
           <div style="grid-column: 1 / -1; text-align: center; color: white; padding: 40px;">
             <p style="font-size: 48px; margin-bottom: 16px;">📭</p>
-            <p>まだ質問がありません</p>
+            <p>質問はありません</p>
           </div>
         `;
         return;
@@ -211,11 +211,11 @@
           <div class="doctor-stats">
             <div class="stat pending">
               <div class="stat-value">${doctor.pending}</div>
-              <div class="stat-label">対応待ち</div>
+              <div class="stat-label">未対応</div>
             </div>
             <div class="stat answered">
               <div class="stat-value">${doctor.answered}</div>
-              <div class="stat-label">回答済み</div>
+              <div class="stat-label">対応済</div>
             </div>
           </div>
         </a>
