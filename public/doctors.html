@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quick Board - 医師選択</title>
+  <title>Quick Board</title>
   <style>
     * {
       box-sizing: border-box;
@@ -12,236 +12,181 @@
     }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: #f8fafc;
       min-height: 100vh;
-      padding: 40px 20px;
-    }
-    .container {
-      max-width: 600px;
-      margin: 0 auto;
+      color: #1e293b;
     }
     .header {
+      background: white;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 20px;
       text-align: center;
-      color: white;
-      margin-bottom: 32px;
     }
     .header h1 {
-      font-size: 28px;
+      font-size: 20px;
+      font-weight: 600;
       margin-bottom: 4px;
     }
     .header p {
-      opacity: 0.85;
       font-size: 14px;
+      color: #64748b;
     }
-
-    .doctors-list {
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .doctors {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
     .doctor-card {
       background: white;
-      border-radius: 12px;
-      padding: 16px 20px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-      cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s;
-      text-decoration: none;
-      color: inherit;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 14px 16px;
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 14px;
+      text-decoration: none;
+      color: inherit;
+      transition: box-shadow 0.15s;
     }
     .doctor-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
-    .doctor-avatar {
-      width: 48px;
-      height: 48px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    .avatar {
+      width: 44px;
+      height: 44px;
+      background: #3b82f6;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       color: white;
-      font-size: 18px;
-      font-weight: bold;
-      flex-shrink: 0;
-    }
-    .doctor-info {
-      flex: 1;
-    }
-    .doctor-name {
       font-size: 16px;
       font-weight: 600;
-      color: #1f2937;
+      flex-shrink: 0;
+    }
+    .info {
+      flex: 1;
+    }
+    .name {
+      font-size: 15px;
+      font-weight: 600;
       margin-bottom: 2px;
     }
-    .doctor-id {
+    .id {
       font-size: 12px;
-      color: #9ca3af;
+      color: #94a3b8;
     }
-    .doctor-stats {
+    .stats {
       display: flex;
       gap: 12px;
-    }
-    .stat {
       text-align: center;
     }
-    .stat-value {
-      font-size: 20px;
-      font-weight: bold;
+    .stat-num {
+      font-size: 18px;
+      font-weight: 600;
     }
+    .stat-num.pending { color: #f59e0b; }
+    .stat-num.answered { color: #10b981; }
     .stat-label {
       font-size: 10px;
-      color: #9ca3af;
+      color: #94a3b8;
     }
-    .stat.pending .stat-value { color: #f59e0b; }
-    .stat.answered .stat-value { color: #10b981; }
-
+    .empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: #94a3b8;
+    }
     .loading {
       text-align: center;
-      color: white;
       padding: 40px;
+      color: #94a3b8;
     }
-    .error {
-      background: rgba(255,255,255,0.95);
-      color: #dc2626;
-      padding: 16px;
-      border-radius: 12px;
-      text-align: center;
-    }
-    .empty-state {
-      text-align: center;
-      color: white;
-      padding: 60px 20px;
-    }
-    .empty-icon {
-      font-size: 48px;
-      margin-bottom: 12px;
-    }
-
-    .refresh-btn {
+    .refresh {
       display: block;
-      margin: 24px auto 0;
-      padding: 12px 24px;
-      background: rgba(255,255,255,0.2);
-      border: 1px solid rgba(255,255,255,0.3);
-      color: white;
-      border-radius: 8px;
-      font-size: 14px;
+      margin: 20px auto 0;
+      padding: 10px 20px;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      color: #64748b;
+      font-size: 13px;
       cursor: pointer;
     }
-    .refresh-btn:hover {
-      background: rgba(255,255,255,0.3);
+    .refresh:hover {
+      background: #f8fafc;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <h1>Quick Board</h1>
-      <p>担当医師を選択</p>
-    </div>
+  <header class="header">
+    <h1>Quick Board</h1>
+    <p>担当医を選択</p>
+  </header>
 
-    <div id="doctors-list" class="doctors-list">
+  <div class="container">
+    <div class="doctors" id="doctors">
       <div class="loading">読み込み中...</div>
     </div>
-
-    <button class="refresh-btn" onclick="loadDoctors()">更新</button>
+    <button class="refresh" onclick="load()">更新</button>
   </div>
 
   <script>
     const SUPABASE_URL = 'https://zumvtcckjvengyhtqlaf.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1bXZ0Y2NranZlbmd5aHRxbGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1MjE3ODUsImV4cCI6MjA4MDA5Nzc4NX0.tYn5Pl92THzT47aBzY8mWL3TT-gC0PGdId9ZWdYBJ7Q';
 
-    async function loadDoctors() {
+    async function load() {
       try {
-        const response = await fetch(`${SUPABASE_URL}/functions/v1/save-question`, {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/save-question`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
           body: JSON.stringify({ action: 'get_questions' }),
         });
+        const result = await res.json();
+        if (!result.success) throw new Error(result.error);
 
-        const result = await response.json();
-
-        if (!result.success) {
-          throw new Error(result.error || 'データ取得に失敗');
-        }
-
-        // 医師ごとに集計
-        const doctorStats = {};
+        const stats = {};
         (result.data || []).forEach(q => {
-          if (!doctorStats[q.doctor_id]) {
-            doctorStats[q.doctor_id] = {
-              id: q.doctor_id,
-              name: q.doctor_name,
-              pending: 0,
-              answered: 0,
-              total: 0
-            };
+          if (!stats[q.doctor_id]) {
+            stats[q.doctor_id] = { id: q.doctor_id, name: q.doctor_name, pending: 0, answered: 0 };
           }
-          doctorStats[q.doctor_id].total++;
-          if (q.status === 'pending') doctorStats[q.doctor_id].pending++;
-          if (q.status === 'answered') doctorStats[q.doctor_id].answered++;
+          if (q.status === 'pending') stats[q.doctor_id].pending++;
+          if (q.status === 'answered') stats[q.doctor_id].answered++;
         });
 
-        renderDoctors(Object.values(doctorStats));
-
-      } catch (error) {
-        console.error('Error:', error);
-        document.getElementById('doctors-list').innerHTML = `
-          <div class="error">読み込みエラー: ${error.message}</div>
-        `;
+        render(Object.values(stats));
+      } catch (e) {
+        document.getElementById('doctors').innerHTML = `<div class="empty">${e.message}</div>`;
       }
     }
 
-    function renderDoctors(doctors) {
-      const container = document.getElementById('doctors-list');
-
+    function render(doctors) {
       if (doctors.length === 0) {
-        container.innerHTML = `
-          <div class="empty-state">
-            <div class="empty-icon">📭</div>
-            <p>質問はありません</p>
-          </div>
-        `;
+        document.getElementById('doctors').innerHTML = '<div class="empty">質問なし</div>';
         return;
       }
-
-      // 未対応が多い順にソート
       doctors.sort((a, b) => b.pending - a.pending);
-
-      container.innerHTML = doctors.map(doctor => `
-        <a href="/doctor/${doctor.id}" class="doctor-card">
-          <div class="doctor-avatar">${(doctor.name || doctor.id).charAt(0)}</div>
-          <div class="doctor-info">
-            <div class="doctor-name">${doctor.name || doctor.id}先生</div>
-            <div class="doctor-id">ID: ${doctor.id}</div>
+      document.getElementById('doctors').innerHTML = doctors.map(d => `
+        <a href="/doctor/${d.id}" class="doctor-card">
+          <div class="avatar">${(d.name || d.id).charAt(0)}</div>
+          <div class="info">
+            <div class="name">${d.name || d.id}</div>
+            <div class="id">${d.id}</div>
           </div>
-          <div class="doctor-stats">
-            <div class="stat pending">
-              <div class="stat-value">${doctor.pending}</div>
-              <div class="stat-label">未対応</div>
-            </div>
-            <div class="stat answered">
-              <div class="stat-value">${doctor.answered}</div>
-              <div class="stat-label">対応済</div>
-            </div>
+          <div class="stats">
+            <div><div class="stat-num pending">${d.pending}</div><div class="stat-label">未対応</div></div>
+            <div><div class="stat-num answered">${d.answered}</div><div class="stat-label">対応済</div></div>
           </div>
         </a>
       `).join('');
     }
 
-    // 初期読み込み
-    loadDoctors();
-
-    // 60秒ごとに更新
-    setInterval(loadDoctors, 60000);
+    load();
+    setInterval(load, 60000);
   </script>
 </body>
 </html>

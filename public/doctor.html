@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quick Board - 質問管理</title>
+  <title>Quick Board</title>
   <style>
     * {
       box-sizing: border-box;
@@ -12,13 +12,16 @@
     }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      background: #f3f4f6;
+      background: #f8fafc;
       min-height: 100vh;
+      color: #1e293b;
     }
-    .navbar {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 12px 20px;
+
+    /* ヘッダー */
+    .header {
+      background: white;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 16px 20px;
       display: flex;
       align-items: center;
       gap: 12px;
@@ -27,304 +30,246 @@
       z-index: 100;
     }
     .back-btn {
-      background: rgba(255,255,255,0.2);
-      border: none;
-      color: white;
-      padding: 6px 12px;
-      border-radius: 6px;
-      cursor: pointer;
+      color: #64748b;
       text-decoration: none;
-      font-size: 13px;
+      font-size: 14px;
+      padding: 6px 10px;
+      border-radius: 6px;
     }
     .back-btn:hover {
-      background: rgba(255,255,255,0.3);
+      background: #f1f5f9;
     }
-    .navbar h1 {
-      font-size: 16px;
+    .header h1 {
+      font-size: 18px;
+      font-weight: 600;
       flex: 1;
     }
-    .refresh-btn {
-      background: rgba(255,255,255,0.2);
-      border: none;
-      color: white;
-      padding: 6px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
+    .header-actions {
+      display: flex;
+      gap: 8px;
     }
-    .refresh-btn:hover {
-      background: rgba(255,255,255,0.3);
+    .btn {
+      padding: 8px 14px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      background: white;
+      color: #475569;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .btn:hover {
+      background: #f8fafc;
     }
 
     .container {
-      max-width: 800px;
+      max-width: 720px;
       margin: 0 auto;
-      padding: 16px;
+      padding: 20px;
     }
 
-    /* 検索・フィルターバー */
+    /* ツールバー */
     .toolbar {
       display: flex;
-      gap: 8px;
-      margin-bottom: 16px;
+      gap: 10px;
+      margin-bottom: 20px;
       flex-wrap: wrap;
-      align-items: center;
     }
-    .search-box {
+    .search-input {
       flex: 1;
       min-width: 200px;
-      position: relative;
-    }
-    .search-box input {
-      width: 100%;
-      padding: 10px 12px 10px 36px;
-      border: 1px solid #e5e7eb;
+      padding: 10px 14px;
+      border: 1px solid #e2e8f0;
       border-radius: 8px;
       font-size: 14px;
       background: white;
     }
-    .search-box input:focus {
+    .search-input:focus {
       outline: none;
-      border-color: #667eea;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
     }
-    .search-box::before {
-      content: "🔍";
-      position: absolute;
-      left: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 14px;
-    }
-    .toggle-btn {
-      padding: 10px 16px;
-      border: 1px solid #e5e7eb;
+    .filter-btn {
+      padding: 10px 14px;
+      border: 1px solid #e2e8f0;
       border-radius: 8px;
       background: white;
-      cursor: pointer;
+      color: #64748b;
       font-size: 13px;
+      cursor: pointer;
       display: flex;
       align-items: center;
       gap: 6px;
-      transition: all 0.2s;
     }
-    .toggle-btn:hover {
-      background: #f9fafb;
+    .filter-btn:hover {
+      background: #f8fafc;
     }
-    .toggle-btn.active {
+    .filter-btn.active {
       background: #fef3c7;
-      border-color: #f59e0b;
+      border-color: #fbbf24;
       color: #92400e;
     }
 
-    /* 統計バー */
-    .stats-bar {
+    /* 統計 */
+    .stats {
       display: flex;
-      gap: 12px;
-      margin-bottom: 16px;
-      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 20px;
     }
-    .stat-chip {
-      background: white;
-      padding: 8px 16px;
-      border-radius: 20px;
+    .stat-item {
       font-size: 13px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      color: #64748b;
     }
-    .stat-chip .count {
-      font-weight: bold;
+    .stat-item strong {
+      font-weight: 600;
+      margin-right: 4px;
     }
-    .stat-chip.pending .count { color: #f59e0b; }
-    .stat-chip.answered .count { color: #10b981; }
-    .stat-chip.approved .count { color: #3b82f6; }
+    .stat-item.pending strong { color: #f59e0b; }
+    .stat-item.answered strong { color: #10b981; }
 
-    /* タスクカード */
-    .tasks-list {
+    /* タスクリスト */
+    .tasks {
       display: flex;
       flex-direction: column;
       gap: 12px;
     }
-    .task-card {
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-      overflow: hidden;
-      border-left: 4px solid #9ca3af;
-      transition: box-shadow 0.2s;
-    }
-    .task-card:hover {
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-    .task-card.pending { border-left-color: #f59e0b; }
-    .task-card.answered { border-left-color: #10b981; }
-    .task-card.approved { border-left-color: #3b82f6; }
-    .task-card.urgent {
-      border-left-color: #ef4444;
-      background: #fef2f2;
-    }
 
-    .task-header {
-      padding: 12px 16px;
+    /* タスクカード */
+    .task {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .task.urgent {
+      border-left: 3px solid #ef4444;
+    }
+    .task-main {
+      padding: 14px 16px;
+    }
+    .task-top {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
-      border-bottom: 1px solid #f3f4f6;
+      align-items: center;
+      margin-bottom: 8px;
     }
-    .task-info {
+    .task-labels {
       display: flex;
       align-items: center;
       gap: 8px;
-      flex-wrap: wrap;
     }
     .patient-id {
       font-weight: 600;
       font-size: 14px;
-      color: #1f2937;
     }
-    .question-type {
+    .tag {
       font-size: 11px;
-      background: #e5e7eb;
       padding: 2px 8px;
       border-radius: 4px;
-      color: #4b5563;
+      background: #f1f5f9;
+      color: #64748b;
     }
-    .urgent-badge {
-      font-size: 11px;
-      background: #fee2e2;
+    .tag.urgent {
+      background: #fef2f2;
       color: #dc2626;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-weight: 500;
     }
-    .status-badge {
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 11px;
-      font-weight: 500;
-      color: white;
+    .time {
+      font-size: 12px;
+      color: #94a3b8;
     }
-    .status-badge.pending { background: #f59e0b; }
-    .status-badge.answered { background: #10b981; }
-    .status-badge.approved { background: #3b82f6; }
-
     .task-content {
-      padding: 12px 16px;
-    }
-    .question-text {
-      color: #374151;
       font-size: 14px;
-      line-height: 1.5;
-      white-space: pre-wrap;
-      margin-bottom: 8px;
+      line-height: 1.6;
+      color: #334155;
+      margin-bottom: 6px;
     }
     .task-meta {
       font-size: 12px;
-      color: #9ca3af;
-      display: flex;
-      justify-content: space-between;
+      color: #94a3b8;
     }
 
     /* クイックリプライ */
-    .quick-reply-section {
+    .quick-actions {
       padding: 12px 16px;
-      background: #f9fafb;
-      border-top: 1px solid #e5e7eb;
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
     }
-    .quick-reply-chips {
+    .chips {
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
     }
     .chip {
-      padding: 6px 14px;
+      padding: 6px 12px;
       border-radius: 16px;
       font-size: 13px;
-      cursor: pointer;
       border: none;
-      transition: all 0.2s;
+      cursor: pointer;
+      background: #e2e8f0;
+      color: #475569;
+      transition: all 0.15s;
     }
-    .chip.primary {
-      background: #667eea;
+    .chip:hover {
+      background: #cbd5e1;
+    }
+    .chip.blue {
+      background: #3b82f6;
       color: white;
     }
-    .chip.primary:hover {
-      background: #5a67d8;
+    .chip.blue:hover {
+      background: #2563eb;
     }
-    .chip.secondary {
-      background: #e5e7eb;
-      color: #374151;
+    .chip.green {
+      background: #10b981;
+      color: white;
     }
-    .chip.secondary:hover {
-      background: #d1d5db;
+    .chip.green:hover {
+      background: #059669;
     }
-    .chip.success {
-      background: #d1fae5;
-      color: #065f46;
-    }
-    .chip.success:hover {
-      background: #a7f3d0;
-    }
-    .chip.warning {
-      background: #fef3c7;
-      color: #92400e;
-    }
-    .chip.warning:hover {
-      background: #fde68a;
-    }
-
-    .custom-reply {
+    .custom-input {
       display: flex;
       gap: 8px;
-      margin-top: 8px;
     }
-    .custom-reply input {
+    .custom-input input {
       flex: 1;
       padding: 8px 12px;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
       font-size: 13px;
     }
-    .custom-reply input:focus {
+    .custom-input input:focus {
       outline: none;
-      border-color: #667eea;
+      border-color: #3b82f6;
     }
-    .custom-reply button {
+    .custom-input button {
       padding: 8px 16px;
-      background: #667eea;
+      background: #3b82f6;
       color: white;
       border: none;
-      border-radius: 8px;
+      border-radius: 6px;
       font-size: 13px;
       cursor: pointer;
     }
-    .custom-reply button:hover {
-      background: #5a67d8;
-    }
-    .custom-reply button:disabled {
-      background: #9ca3af;
-      cursor: not-allowed;
+    .custom-input button:hover {
+      background: #2563eb;
     }
 
-    /* 回答セクション */
-    .answer-section {
+    /* 回答表示 */
+    .answer {
       padding: 12px 16px;
       background: #f0fdf4;
-      border-top: 1px solid #d1fae5;
+      border-top: 1px solid #dcfce7;
     }
     .answer-label {
       font-size: 11px;
-      color: #059669;
+      color: #16a34a;
       font-weight: 500;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
     .answer-text {
-      color: #166534;
       font-size: 14px;
+      color: #166534;
       line-height: 1.5;
-      white-space: pre-wrap;
     }
     .answer-meta {
       font-size: 11px;
@@ -333,90 +278,86 @@
     }
 
     /* 空状態 */
-    .empty-state {
+    .empty {
       text-align: center;
       padding: 60px 20px;
-      color: #9ca3af;
+      color: #94a3b8;
     }
     .empty-icon {
-      font-size: 48px;
+      font-size: 40px;
       margin-bottom: 12px;
     }
 
+    /* ローディング */
     .loading {
       text-align: center;
       padding: 40px;
-      color: #6b7280;
+      color: #94a3b8;
     }
 
-    /* 送信中オーバーレイ */
-    .sending-overlay {
+    /* オーバーレイ */
+    .overlay {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(0,0,0,0.3);
+      background: rgba(0,0,0,0.4);
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 200;
     }
-    .sending-box {
+    .overlay-box {
       background: white;
-      padding: 24px 40px;
+      padding: 24px 32px;
       border-radius: 12px;
       text-align: center;
     }
-    .sending-box .spinner {
-      width: 32px;
-      height: 32px;
-      border: 3px solid #e5e7eb;
-      border-top-color: #667eea;
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 2px solid #e2e8f0;
+      border-top-color: #3b82f6;
       border-radius: 50%;
-      animation: spin 1s linear infinite;
+      animation: spin 0.8s linear infinite;
       margin: 0 auto 12px;
     }
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
-
     .hidden { display: none !important; }
   </style>
 </head>
 <body>
-  <nav class="navbar">
+  <header class="header">
     <a href="/doctors" class="back-btn">← 戻る</a>
     <h1 id="page-title">Quick Board</h1>
-    <button class="refresh-btn" onclick="loadTasks()">更新</button>
-  </nav>
+    <div class="header-actions">
+      <button class="btn" onclick="loadTasks()">更新</button>
+    </div>
+  </header>
 
   <div class="container">
-    <!-- ツールバー -->
     <div class="toolbar">
-      <div class="search-box">
-        <input type="text" id="search-input" placeholder="患者ID・内容で検索...">
-      </div>
-      <button class="toggle-btn" id="urgent-toggle" onclick="toggleUrgentOnly()">
-        🚨 急ぎのみ
+      <input type="text" class="search-input" id="search-input" placeholder="検索...">
+      <button class="filter-btn" id="urgent-toggle" onclick="toggleUrgent()">
+        急ぎのみ
       </button>
-      <button class="toggle-btn" id="history-toggle" onclick="toggleHistory()">
-        📋 履歴
+      <button class="filter-btn" id="history-toggle" onclick="toggleHistory()">
+        履歴
       </button>
     </div>
 
-    <!-- 統計 -->
-    <div class="stats-bar" id="stats-bar"></div>
+    <div class="stats" id="stats"></div>
 
-    <!-- タスクリスト -->
-    <div id="tasks-list" class="tasks-list">
+    <div class="tasks" id="tasks">
       <div class="loading">読み込み中...</div>
     </div>
   </div>
 
-  <!-- 送信中オーバーレイ -->
-  <div class="sending-overlay hidden" id="sending-overlay">
-    <div class="sending-box">
+  <div class="overlay hidden" id="overlay">
+    <div class="overlay-box">
       <div class="spinner"></div>
       <div>送信中...</div>
     </div>
@@ -426,7 +367,6 @@
     const SUPABASE_URL = 'https://zumvtcckjvengyhtqlaf.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1bXZ0Y2NranZlbmd5aHRxbGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1MjE3ODUsImV4cCI6MjA4MDA5Nzc4NX0.tYn5Pl92THzT47aBzY8mWL3TT-gC0PGdId9ZWdYBJ7Q';
 
-    // URLから医師IDを取得
     const pathParts = window.location.pathname.split('/');
     const doctorId = pathParts[pathParts.length - 1];
 
@@ -435,246 +375,154 @@
     let showHistory = false;
     let searchQuery = '';
 
-    // ページタイトル設定
-    document.getElementById('page-title').textContent = `${doctorId} - Quick Board`;
+    document.getElementById('page-title').textContent = doctorId;
     document.title = `${doctorId} - Quick Board`;
 
-    // 検索入力
     document.getElementById('search-input').addEventListener('input', (e) => {
       searchQuery = e.target.value.toLowerCase();
-      renderTasks();
+      render();
     });
 
-    function toggleUrgentOnly() {
+    function toggleUrgent() {
       urgentOnly = !urgentOnly;
       document.getElementById('urgent-toggle').classList.toggle('active', urgentOnly);
-      renderTasks();
+      render();
     }
 
     function toggleHistory() {
       showHistory = !showHistory;
       document.getElementById('history-toggle').classList.toggle('active', showHistory);
-      renderTasks();
+      render();
     }
 
     async function loadTasks() {
       try {
-        const response = await fetch(`${SUPABASE_URL}/functions/v1/save-question`, {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/save-question`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
           },
-          body: JSON.stringify({
-            action: 'get_questions',
-            doctorId: doctorId
-          }),
+          body: JSON.stringify({ action: 'get_questions', doctorId }),
         });
-
-        const result = await response.json();
-
-        if (!result.success) {
-          throw new Error(result.error || 'データ取得に失敗');
-        }
-
+        const result = await res.json();
+        if (!result.success) throw new Error(result.error);
         allQuestions = result.data || [];
-        renderStats();
-        renderTasks();
-
-      } catch (error) {
-        console.error('Error:', error);
-        document.getElementById('tasks-list').innerHTML = `
-          <div class="empty-state">
-            <div class="empty-icon">❌</div>
-            <p>読み込みエラー</p>
-            <p style="font-size:12px;margin-top:4px;">${error.message}</p>
-          </div>
-        `;
+        render();
+      } catch (e) {
+        document.getElementById('tasks').innerHTML = `<div class="empty"><div class="empty-icon">×</div><p>${e.message}</p></div>`;
       }
     }
 
-    function renderStats() {
+    function render() {
+      // Stats
       const pending = allQuestions.filter(q => q.status === 'pending').length;
       const answered = allQuestions.filter(q => q.status === 'answered').length;
-      const approved = allQuestions.filter(q => q.status === 'approved').length;
-
-      document.getElementById('stats-bar').innerHTML = `
-        <div class="stat-chip pending">
-          <span>未対応</span>
-          <span class="count">${pending}</span>
-        </div>
-        <div class="stat-chip answered">
-          <span>対応済</span>
-          <span class="count">${answered}</span>
-        </div>
-        <div class="stat-chip approved">
-          <span>完了</span>
-          <span class="count">${approved}</span>
-        </div>
+      document.getElementById('stats').innerHTML = `
+        <div class="stat-item pending"><strong>${pending}</strong>未対応</div>
+        <div class="stat-item answered"><strong>${answered}</strong>対応済</div>
       `;
-    }
 
-    function renderTasks() {
-      let filtered = allQuestions;
-
-      // 履歴モードでなければpendingのみ
-      if (!showHistory) {
-        filtered = filtered.filter(q => q.status === 'pending');
-      }
-
-      // 急ぎのみフィルタ（question_typeが'urgent'の場合）
-      if (urgentOnly) {
-        filtered = filtered.filter(q => q.question_type === 'urgent' || q.is_urgent);
-      }
-
-      // 検索フィルタ
+      // Filter
+      let list = allQuestions;
+      if (!showHistory) list = list.filter(q => q.status === 'pending');
+      if (urgentOnly) list = list.filter(q => q.question_type === 'urgent' || q.is_urgent);
       if (searchQuery) {
-        filtered = filtered.filter(q =>
-          (q.patient_id && q.patient_id.toLowerCase().includes(searchQuery)) ||
-          (q.question_content && q.question_content.toLowerCase().includes(searchQuery)) ||
-          (q.user_name && q.user_name.toLowerCase().includes(searchQuery))
+        list = list.filter(q =>
+          (q.patient_id || '').toLowerCase().includes(searchQuery) ||
+          (q.question_content || '').toLowerCase().includes(searchQuery)
         );
       }
 
-      if (filtered.length === 0) {
-        document.getElementById('tasks-list').innerHTML = `
-          <div class="empty-state">
-            <div class="empty-icon">${showHistory ? '📭' : '✅'}</div>
-            <p>${showHistory ? '該当する質問がありません' : '未対応の質問はありません'}</p>
-          </div>
-        `;
+      if (list.length === 0) {
+        document.getElementById('tasks').innerHTML = `<div class="empty"><div class="empty-icon">${showHistory ? '📭' : '✓'}</div><p>${showHistory ? '質問なし' : '未対応なし'}</p></div>`;
         return;
       }
 
-      const statusLabels = {
-        pending: '未対応',
-        answered: '対応済',
-        approved: '完了'
-      };
-
-      document.getElementById('tasks-list').innerHTML = filtered.map(q => {
+      document.getElementById('tasks').innerHTML = list.map(q => {
         const isUrgent = q.question_type === 'urgent' || q.is_urgent;
-
         return `
-          <div class="task-card ${q.status} ${isUrgent ? 'urgent' : ''}" data-id="${q.question_id}">
-            <div class="task-header">
-              <div class="task-info">
-                <span class="patient-id">${q.patient_id}</span>
-                <span class="question-type">${q.question_type_label || q.question_type}</span>
-                ${isUrgent ? '<span class="urgent-badge">急ぎ</span>' : ''}
+          <div class="task ${isUrgent ? 'urgent' : ''}">
+            <div class="task-main">
+              <div class="task-top">
+                <div class="task-labels">
+                  <span class="patient-id">${esc(q.patient_id)}</span>
+                  <span class="tag">${esc(q.question_type_label || q.question_type)}</span>
+                  ${isUrgent ? '<span class="tag urgent">急ぎ</span>' : ''}
+                </div>
+                <span class="time">${timeAgo(q.created_at)}</span>
               </div>
-              <span class="status-badge ${q.status}">${statusLabels[q.status]}</span>
-            </div>
-            <div class="task-content">
-              <div class="question-text">${escapeHtml(q.question_content)}</div>
-              <div class="task-meta">
-                <span>${q.user_name || q.user_id}</span>
-                <span>${formatDate(q.created_at)}</span>
-              </div>
+              <div class="task-content">${esc(q.question_content)}</div>
+              <div class="task-meta">${esc(q.user_name || q.user_id)}</div>
             </div>
             ${q.status === 'pending' ? `
-              <div class="quick-reply-section">
-                <div class="quick-reply-chips">
-                  <button class="chip primary" onclick="quickReply('${q.question_id}', '了解しました')">了解</button>
-                  <button class="chip success" onclick="quickReply('${q.question_id}', '処方しました')">処方済</button>
-                  <button class="chip warning" onclick="quickReply('${q.question_id}', '後で確認します')">後で確認</button>
-                  <button class="chip secondary" onclick="quickReply('${q.question_id}', '電話で連絡します')">電話連絡</button>
+              <div class="quick-actions">
+                <div class="chips">
+                  <button class="chip blue" onclick="reply('${q.question_id}','了解')">了解</button>
+                  <button class="chip green" onclick="reply('${q.question_id}','処方済')">処方済</button>
+                  <button class="chip" onclick="reply('${q.question_id}','後で確認')">後で確認</button>
+                  <button class="chip" onclick="reply('${q.question_id}','電話連絡')">電話連絡</button>
                 </div>
-                <div class="custom-reply">
-                  <input type="text" id="reply-${q.question_id}" placeholder="カスタム返信...">
-                  <button onclick="sendCustomReply('${q.question_id}')">送信</button>
+                <div class="custom-input">
+                  <input type="text" id="input-${q.question_id}" placeholder="返信を入力...">
+                  <button onclick="customReply('${q.question_id}')">送信</button>
                 </div>
               </div>
             ` : ''}
-            ${q.answers && q.answers.length > 0 ? q.answers.map(a => `
-              <div class="answer-section">
+            ${(q.answers || []).map(a => `
+              <div class="answer">
                 <div class="answer-label">回答</div>
-                <div class="answer-text">${escapeHtml(a.answer_content)}</div>
-                <div class="answer-meta">${a.answered_by_name || a.answered_by} | ${formatDate(a.created_at)}</div>
+                <div class="answer-text">${esc(a.answer_content)}</div>
+                <div class="answer-meta">${esc(a.answered_by_name || a.answered_by)} · ${timeAgo(a.created_at)}</div>
               </div>
-            `).join('') : ''}
+            `).join('')}
           </div>
         `;
       }).join('');
     }
 
-    async function quickReply(questionId, message) {
-      await sendReply(questionId, message);
-    }
-
-    async function sendCustomReply(questionId) {
-      const input = document.getElementById(`reply-${questionId}`);
-      const message = input.value.trim();
-      if (!message) return;
-      await sendReply(questionId, message);
-    }
-
-    async function sendReply(questionId, message) {
-      document.getElementById('sending-overlay').classList.remove('hidden');
-
+    async function reply(id, msg) {
+      document.getElementById('overlay').classList.remove('hidden');
       try {
-        // 回答を保存
-        const response = await fetch(`${SUPABASE_URL}/functions/v1/save-question`, {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/save-question`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({
-            action: 'save_answer',
-            questionId: questionId,
-            answerContent: message,
-            answeredBy: doctorId,
-            answeredByName: doctorId + '先生'
-          }),
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+          body: JSON.stringify({ action: 'save_answer', questionId: id, answerContent: msg, answeredBy: doctorId, answeredByName: doctorId }),
         });
-
-        const result = await response.json();
-
-        if (!result.success) {
-          throw new Error(result.error || '送信に失敗しました');
-        }
-
-        // リロード
+        const result = await res.json();
+        if (!result.success) throw new Error(result.error);
         await loadTasks();
-
-      } catch (error) {
-        console.error('Error:', error);
-        alert('送信に失敗しました: ' + error.message);
-      } finally {
-        document.getElementById('sending-overlay').classList.add('hidden');
+      } catch (e) {
+        alert('エラー: ' + e.message);
       }
+      document.getElementById('overlay').classList.add('hidden');
     }
 
-    function formatDate(dateStr) {
-      const date = new Date(dateStr);
-      const now = new Date();
-      const diff = now - date;
-
-      // 1時間以内
-      if (diff < 60 * 60 * 1000) {
-        const mins = Math.floor(diff / 60000);
-        return mins <= 0 ? 'たった今' : `${mins}分前`;
-      }
-      // 今日
-      if (date.toDateString() === now.toDateString()) {
-        return date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
-      }
-      // それ以外
-      return date.toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    function customReply(id) {
+      const input = document.getElementById(`input-${id}`);
+      const msg = input.value.trim();
+      if (msg) reply(id, msg);
     }
 
-    function escapeHtml(text) {
-      if (!text) return '';
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
+    function timeAgo(dateStr) {
+      const d = new Date(dateStr);
+      const diff = Date.now() - d.getTime();
+      const m = Math.floor(diff / 60000);
+      if (m < 1) return 'たった今';
+      if (m < 60) return `${m}分前`;
+      const h = Math.floor(m / 60);
+      if (h < 24) return `${h}時間前`;
+      return d.toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
     }
 
-    // 初期読み込み
+    function esc(t) {
+      if (!t) return '';
+      const d = document.createElement('div');
+      d.textContent = t;
+      return d.innerHTML;
+    }
+
     loadTasks();
-
-    // 30秒ごとに更新
     setInterval(loadTasks, 30000);
   </script>
 </body>
