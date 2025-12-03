@@ -5,6 +5,21 @@ const { WebClient } = require('@slack/web-api');
 const { v4: uuidv4 } = require('uuid');
 
 const app = express();
+const path = require('path');
+
+// 静的ファイル配信
+app.use(express.static(path.join(__dirname, 'public')));
+
+// 医師一覧ページ
+app.get('/doctors', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'doctors.html'));
+});
+
+// 医師別タスクページ
+app.get('/doctor/:doctorId', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'doctor.html'));
+});
+
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
