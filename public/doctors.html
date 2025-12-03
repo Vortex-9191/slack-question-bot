@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>医師一覧 - 質問管理システム</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 40px;
+    }
+    .header h1 {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+    .header p {
+      opacity: 0.9;
+    }
+    .doctors-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 20px;
+    }
+    .doctor-card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+    .doctor-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 15px 50px rgba(0,0,0,0.3);
+    }
+    .doctor-avatar {
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 16px;
+    }
+    .doctor-name {
+      font-size: 20px;
+      font-weight: bold;
+      color: #1f2937;
+      margin-bottom: 4px;
+    }
+    .doctor-id {
+      font-size: 14px;
+      color: #6b7280;
+      margin-bottom: 16px;
+    }
+    .doctor-stats {
+      display: flex;
+      gap: 12px;
+    }
+    .stat {
+      flex: 1;
+      text-align: center;
+      padding: 8px;
+      background: #f9fafb;
+      border-radius: 8px;
+    }
+    .stat-value {
+      font-size: 20px;
+      font-weight: bold;
+    }
+    .stat-label {
+      font-size: 11px;
+      color: #6b7280;
+    }
+    .stat.pending .stat-value { color: #f59e0b; }
+    .stat.answered .stat-value { color: #10b981; }
+
+    .loading {
+      text-align: center;
+      color: white;
+      padding: 40px;
+    }
+    .error {
+      background: #fee2e2;
+      color: #dc2626;
+      padding: 16px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .add-doctor {
+      background: rgba(255,255,255,0.2);
+      border: 2px dashed rgba(255,255,255,0.5);
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+      color: white;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .add-doctor:hover {
+      background: rgba(255,255,255,0.3);
+    }
+    .add-doctor-icon {
+      font-size: 40px;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>質問管理システム</h1>
+      <p>医師を選択してタスクを確認</p>
+    </div>
+
+    <div id="doctors-list" class="doctors-grid">
+      <div class="loading">読み込み中...</div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://zumvtcckjvengyhtqlaf.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1bXZ0Y2NranZlbmd5aHRxbGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1MjE3ODUsImV4cCI6MjA4MDA5Nzc4NX0.tYn5Pl92THzT47aBzY8mWL3TT-gC0PGdId9ZWdYBJ7Q';
+
+    async function loadDoctors() {
+      try {
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/save-question`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({ action: 'get_questions' }),
+        });
+
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.error || 'データ取得に失敗しました');
+        }
+
+        // 医師ごとに集計
+        const doctorStats = {};
+        (result.data || []).forEach(q => {
+          if (!doctorStats[q.doctor_id]) {
+            doctorStats[q.doctor_id] = {
+              id: q.doctor_id,
+              name: q.doctor_name,
+              pending: 0,
+              answered: 0,
+              total: 0
+            };
+          }
+          doctorStats[q.doctor_id].total++;
+          if (q.status === 'pending') doctorStats[q.doctor_id].pending++;
+          if (q.status === 'answered') doctorStats[q.doctor_id].answered++;
+        });
+
+        renderDoctors(Object.values(doctorStats));
+
+      } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('doctors-list').innerHTML = `
+          <div class="error">データの読み込みに失敗しました: ${error.message}</div>
+        `;
+      }
+    }
+
+    function renderDoctors(doctors) {
+      const container = document.getElementById('doctors-list');
+
+      if (doctors.length === 0) {
+        container.innerHTML = `
+          <div style="grid-column: 1 / -1; text-align: center; color: white; padding: 40px;">
+            <p style="font-size: 48px; margin-bottom: 16px;">📭</p>
+            <p>まだ質問がありません</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = doctors.map(doctor => `
+        <a href="/doctor/${doctor.id}" class="doctor-card">
+          <div class="doctor-avatar">${(doctor.name || doctor.id).charAt(0)}</div>
+          <div class="doctor-name">${doctor.name || doctor.id}先生</div>
+          <div class="doctor-id">ID: ${doctor.id}</div>
+          <div class="doctor-stats">
+            <div class="stat pending">
+              <div class="stat-value">${doctor.pending}</div>
+              <div class="stat-label">対応待ち</div>
+            </div>
+            <div class="stat answered">
+              <div class="stat-value">${doctor.answered}</div>
+              <div class="stat-label">回答済み</div>
+            </div>
+          </div>
+        </a>
+      `).join('');
+    }
+
+    // 初期読み込み
+    loadDoctors();
+
+    // 60秒ごとに更新
+    setInterval(loadDoctors, 60000);
+  </script>
+</body>
+</html>

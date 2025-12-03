@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>タスク管理 - 質問管理システム</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: #f3f4f6;
+      min-height: 100vh;
+    }
+    .navbar {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .back-btn {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .back-btn:hover {
+      background: rgba(255,255,255,0.3);
+    }
+    .navbar h1 {
+      font-size: 20px;
+      flex: 1;
+    }
+    .refresh-btn {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .refresh-btn:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .stats-bar {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .stat-card {
+      background: white;
+      padding: 16px 24px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      min-width: 120px;
+    }
+    .stat-card .label {
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 4px;
+    }
+    .stat-card .value {
+      font-size: 28px;
+      font-weight: bold;
+    }
+    .stat-card.pending .value { color: #f59e0b; }
+    .stat-card.answered .value { color: #10b981; }
+    .stat-card.approved .value { color: #3b82f6; }
+
+    .filters {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .filter-btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      background: white;
+      color: #374151;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      transition: all 0.2s;
+    }
+    .filter-btn:hover {
+      background: #f3f4f6;
+    }
+    .filter-btn.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .questions-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .question-card {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      border-left: 4px solid #6b7280;
+    }
+    .question-card.pending { border-left-color: #f59e0b; }
+    .question-card.answered { border-left-color: #10b981; }
+    .question-card.approved { border-left-color: #3b82f6; }
+
+    .question-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    .patient-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .patient-id {
+      font-weight: bold;
+      font-size: 16px;
+      color: #1f2937;
+    }
+    .question-type {
+      font-size: 12px;
+      background: #e5e7eb;
+      padding: 4px 8px;
+      border-radius: 4px;
+      color: #4b5563;
+    }
+    .status-badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      color: white;
+    }
+    .status-badge.pending { background: #f59e0b; }
+    .status-badge.answered { background: #10b981; }
+    .status-badge.approved { background: #3b82f6; }
+
+    .question-content {
+      color: #374151;
+      line-height: 1.6;
+      margin-bottom: 12px;
+      font-size: 15px;
+      white-space: pre-wrap;
+    }
+    .question-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: #9ca3af;
+    }
+
+    .answer-section {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #e5e7eb;
+    }
+    .answer-label {
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+    .answer-content {
+      background: #f0fdf4;
+      padding: 12px 16px;
+      border-radius: 8px;
+      color: #166534;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+    .answer-meta {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 8px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #9ca3af;
+    }
+    .empty-state-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 60px 20px;
+      color: #6b7280;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/doctors" class="back-btn">← 戻る</a>
+    <h1 id="page-title">タスク管理</h1>
+    <button class="refresh-btn" onclick="loadTasks()">更新</button>
+  </nav>
+
+  <div class="container">
+    <div class="stats-bar" id="stats-bar">
+      <!-- 統計が動的に入る -->
+    </div>
+
+    <div class="filters" id="filters">
+      <button class="filter-btn active" data-status="all">すべて</button>
+      <button class="filter-btn" data-status="pending">対応待ち</button>
+      <button class="filter-btn" data-status="answered">回答済み</button>
+      <button class="filter-btn" data-status="approved">承認済み</button>
+    </div>
+
+    <div id="questions-list" class="questions-list">
+      <div class="loading">読み込み中...</div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://zumvtcckjvengyhtqlaf.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1bXZ0Y2NranZlbmd5aHRxbGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1MjE3ODUsImV4cCI6MjA4MDA5Nzc4NX0.tYn5Pl92THzT47aBzY8mWL3TT-gC0PGdId9ZWdYBJ7Q';
+
+    // URLから医師IDを取得
+    const pathParts = window.location.pathname.split('/');
+    const doctorId = pathParts[pathParts.length - 1];
+    let currentFilter = 'all';
+    let allQuestions = [];
+
+    // ページタイトルを設定
+    document.getElementById('page-title').textContent = `${doctorId} 先生のタスク`;
+    document.title = `${doctorId} - タスク管理`;
+
+    // フィルターボタンのイベント設定
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.status;
+        renderQuestions();
+      });
+    });
+
+    async function loadTasks() {
+      try {
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/save-question`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            action: 'get_questions',
+            doctorId: doctorId
+          }),
+        });
+
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.error || 'データ取得に失敗しました');
+        }
+
+        allQuestions = result.data || [];
+        renderStats();
+        renderQuestions();
+
+      } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('questions-list').innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">❌</div>
+            <p>データの読み込みに失敗しました</p>
+            <p style="font-size: 14px; margin-top: 8px;">${error.message}</p>
+          </div>
+        `;
+      }
+    }
+
+    function renderStats() {
+      const stats = {
+        total: allQuestions.length,
+        pending: allQuestions.filter(q => q.status === 'pending').length,
+        answered: allQuestions.filter(q => q.status === 'answered').length,
+        approved: allQuestions.filter(q => q.status === 'approved').length,
+      };
+
+      document.getElementById('stats-bar').innerHTML = `
+        <div class="stat-card">
+          <div class="label">合計</div>
+          <div class="value">${stats.total}</div>
+        </div>
+        <div class="stat-card pending">
+          <div class="label">対応待ち</div>
+          <div class="value">${stats.pending}</div>
+        </div>
+        <div class="stat-card answered">
+          <div class="label">回答済み</div>
+          <div class="value">${stats.answered}</div>
+        </div>
+        <div class="stat-card approved">
+          <div class="label">承認済み</div>
+          <div class="value">${stats.approved}</div>
+        </div>
+      `;
+    }
+
+    function renderQuestions() {
+      const filtered = currentFilter === 'all'
+        ? allQuestions
+        : allQuestions.filter(q => q.status === currentFilter);
+
+      if (filtered.length === 0) {
+        document.getElementById('questions-list').innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📭</div>
+            <p>質問がありません</p>
+          </div>
+        `;
+        return;
+      }
+
+      const statusLabels = {
+        pending: '対応待ち',
+        answered: '回答済み',
+        approved: '承認済み'
+      };
+
+      document.getElementById('questions-list').innerHTML = filtered.map(q => `
+        <div class="question-card ${q.status}">
+          <div class="question-header">
+            <div class="patient-info">
+              <span class="patient-id">患者ID: ${q.patient_id}</span>
+              <span class="question-type">${q.question_type_label || q.question_type}</span>
+            </div>
+            <span class="status-badge ${q.status}">${statusLabels[q.status] || q.status}</span>
+          </div>
+          <div class="question-content">${escapeHtml(q.question_content)}</div>
+          <div class="question-meta">
+            <span>質問者: ${q.user_name || q.user_id}</span>
+            <span>${formatDate(q.created_at)}</span>
+          </div>
+          ${q.answers && q.answers.length > 0 ? `
+            <div class="answer-section">
+              <div class="answer-label">回答</div>
+              ${q.answers.map(a => `
+                <div class="answer-content">${escapeHtml(a.answer_content)}</div>
+                <div class="answer-meta">回答者: ${a.answered_by_name || a.answered_by} | ${formatDate(a.created_at)}</div>
+              `).join('')}
+            </div>
+          ` : ''}
+        </div>
+      `).join('');
+    }
+
+    function formatDate(dateStr) {
+      const date = new Date(dateStr);
+      return date.toLocaleString('ja-JP', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // 初期読み込み
+    loadTasks();
+
+    // 30秒ごとに更新
+    setInterval(loadTasks, 30000);
+  </script>
+</body>
+</html>

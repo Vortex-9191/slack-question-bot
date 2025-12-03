@@ -66,6 +66,25 @@ const adminChannelId = process.env.ADMIN_CHANNEL_ID;
 console.log('✅ Slack WebClient初期化完了');
 
 // ===============================
+// 静的ファイル配信
+// ===============================
+const path = require('path');
+app.use(express.static(path.join(__dirname, 'public')));
+
+// ===============================
+// フロントエンドルーティング
+// ===============================
+// 医師一覧ページ
+app.get('/doctors', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'doctors.html'));
+});
+
+// 医師別タスクページ
+app.get('/doctor/:doctorId', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'doctor.html'));
+});
+
+// ===============================
 // ミドルウェア設定
 // ===============================
 // Raw bodyを保存しつつ、通常のパースも行う
