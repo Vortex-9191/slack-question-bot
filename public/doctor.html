@@ -4,385 +4,52 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Quick Board</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #f1f5f9;
-      min-height: 100vh;
-      color: #0f172a;
-    }
-
-    /* Header */
-    .header {
-      background: white;
-      border-bottom: 1px solid #e2e8f0;
-      padding: 8px 12px;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-    .header-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      height: 32px;
-      margin-bottom: 8px;
-    }
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .logo {
-      background: #0d9488;
-      color: white;
-      width: 24px;
-      height: 24px;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-    }
-    .title {
-      font-size: 14px;
-      font-weight: 700;
-      color: #1e293b;
-    }
-    .badge {
-      background: #ef4444;
-      color: white;
-      font-size: 10px;
-      font-weight: 700;
-      padding: 2px 6px;
-      border-radius: 10px;
-    }
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .icon-btn {
-      padding: 6px;
-      border: none;
-      background: transparent;
-      color: #94a3b8;
-      cursor: pointer;
-      border-radius: 4px;
-    }
-    .icon-btn:hover, .icon-btn.active {
-      background: #f1f5f9;
-      color: #0d9488;
-    }
-    .history-btn {
-      padding: 4px 8px;
-      font-size: 12px;
-      border: 1px solid #e2e8f0;
-      background: white;
-      color: #64748b;
-      border-radius: 4px;
-      cursor: pointer;
-      margin-left: 4px;
-    }
-    .history-btn:hover {
-      background: #f8fafc;
-    }
-    .history-btn.active {
-      background: #334155;
-      color: white;
-      border-color: #334155;
-    }
-
-    /* Filter Row */
-    .filter-row {
-      display: none;
-      gap: 8px;
-      align-items: center;
-    }
-    .filter-row.show {
-      display: flex;
-    }
-    .search-wrap {
-      flex: 1;
-      position: relative;
-    }
-    .search-wrap input {
-      width: 100%;
-      padding: 6px 8px 6px 28px;
-      font-size: 12px;
-      border: 1px solid #e2e8f0;
-      border-radius: 4px;
-      background: #f8fafc;
-    }
-    .search-wrap input:focus {
-      outline: none;
-      background: white;
-      border-color: #0d9488;
-    }
-    .search-wrap svg {
-      position: absolute;
-      left: 8px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 12px;
-      height: 12px;
-      color: #94a3b8;
-    }
-    .urgent-btn {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      padding: 6px 8px;
-      font-size: 12px;
-      border: 1px solid #e2e8f0;
-      background: white;
-      color: #64748b;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .urgent-btn.active {
-      background: #fef2f2;
-      color: #dc2626;
-      border-color: #fecaca;
-      font-weight: 700;
-    }
-
-    /* Task List */
-    .task-list {
-      padding: 8px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    /* Task Card */
-    .task-card {
-      background: white;
-      border-radius: 8px;
-      border: 1px solid #e2e8f0;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-      overflow: hidden;
-      border-left: 4px solid #60a5fa;
-    }
-    .task-card.urgent {
-      border-left-color: #ef4444;
-    }
-    .task-card.sending {
-      opacity: 0.5;
-    }
-    .task-main {
-      padding: 12px;
-    }
-    .task-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 8px;
-    }
-    .task-badges {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .urgent-tag {
-      display: flex;
-      align-items: center;
-      gap: 2px;
-      font-size: 10px;
-      font-weight: 700;
-      background: #fef2f2;
-      color: #dc2626;
-      padding: 2px 6px;
-      border-radius: 3px;
-    }
-    .time {
-      font-size: 12px;
-      color: #94a3b8;
-    }
-    .task-text {
-      font-size: 14px;
-      font-weight: 500;
-      color: #0f172a;
-      line-height: 1.5;
-      margin-bottom: 12px;
-      white-space: pre-wrap;
-    }
-    .task-meta {
-      font-size: 12px;
-      color: #94a3b8;
-      margin-bottom: 8px;
-    }
-
-    /* Quick Actions */
-    .quick-actions {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    .chip {
-      padding: 6px 12px;
-      font-size: 12px;
-      background: #f1f5f9;
-      color: #475569;
-      border: 1px solid #e2e8f0;
-      border-radius: 16px;
-      cursor: pointer;
-    }
-    .chip:hover {
-      background: #e2e8f0;
-    }
-    .reply-row {
-      display: flex;
-      gap: 8px;
-    }
-    .reply-row input {
-      flex: 1;
-      padding: 8px 10px;
-      font-size: 13px;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      background: #f8fafc;
-    }
-    .reply-row input:focus {
-      outline: none;
-      background: white;
-      border-color: #0d9488;
-    }
-    .reply-row button {
-      padding: 8px 12px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .send-btn {
-      background: #2563eb;
-      color: white;
-    }
-    .send-btn:hover {
-      background: #1d4ed8;
-    }
-    .check-btn {
-      background: #64748b;
-      color: white;
-    }
-    .check-btn:hover {
-      background: #475569;
-    }
-
-    /* History Card */
-    .history-card {
-      background: #f8fafc;
-      border-radius: 8px;
-      border: 1px solid #e2e8f0;
-      padding: 12px;
-      opacity: 0.7;
-    }
-    .history-header {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 6px;
-    }
-    .done-tag {
-      font-size: 10px;
-      background: #dcfce7;
-      color: #15803d;
-      padding: 2px 6px;
-      border-radius: 3px;
-      border: 1px solid #bbf7d0;
-    }
-    .history-text {
-      font-size: 14px;
-      color: #475569;
-      margin-bottom: 8px;
-    }
-    .history-answer {
-      background: white;
-      padding: 8px;
-      border-radius: 4px;
-      border: 1px solid #e2e8f0;
-      font-size: 12px;
-    }
-    .history-answer strong {
-      color: #64748b;
-      margin-right: 4px;
-    }
-
-    /* Empty State */
-    .empty {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 60px 20px;
-      color: #94a3b8;
-    }
-    .empty svg {
-      width: 48px;
-      height: 48px;
-      margin-bottom: 12px;
-      opacity: 0.2;
-    }
-    .empty p {
-      font-size: 14px;
-      font-weight: 500;
-    }
-    .empty small {
-      font-size: 12px;
-      opacity: 0.6;
-      margin-top: 4px;
-    }
-
-    /* Loading */
-    .loading {
-      text-align: center;
-      padding: 40px;
-      color: #94a3b8;
-    }
-
-    /* SVG Icons inline */
-    .icon { width: 12px; height: 12px; }
-    .icon-sm { width: 14px; height: 14px; }
+    .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
   </style>
 </head>
-<body>
-  <header class="header">
-    <div class="header-top">
-      <div class="header-left">
-        <div class="logo">⚡</div>
-        <span class="title">Quick Board</span>
-        <span class="badge" id="pending-badge" style="display:none">0</span>
+<body class="bg-slate-100 min-h-screen font-sans text-slate-900">
+
+  <!-- Header -->
+  <div class="bg-white border-b border-slate-200 px-3 py-2 sticky top-0 z-10 shadow-sm">
+    <div class="flex justify-between items-center h-8 mb-2">
+      <div class="flex items-center gap-2">
+        <div class="bg-teal-600 p-1 rounded text-white">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        </div>
+        <h2 class="text-sm font-bold text-slate-800">Quick Board</h2>
+        <span id="pending-badge" class="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden">0</span>
       </div>
-      <div class="header-right">
-        <button class="icon-btn" id="search-btn" title="検索">
-          <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <div class="flex items-center gap-1">
+        <button id="search-btn" class="p-1.5 rounded transition-colors text-slate-400 hover:bg-slate-50">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         </button>
-        <button class="history-btn" id="history-btn">履歴</button>
+        <button id="history-btn" class="px-2 py-1 text-xs rounded border transition-colors ml-1 bg-white text-slate-500 border-slate-200">
+          履歴
+        </button>
       </div>
     </div>
-    <div class="filter-row" id="filter-row">
-      <div class="search-wrap">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input type="text" id="search-input" placeholder="キーワード検索...">
+
+    <!-- Filter Controls -->
+    <div id="filter-row" class="hidden gap-2 items-center mb-1">
+      <div class="relative flex-1">
+        <input id="search-input" type="text" placeholder="キーワード検索..." class="w-full pl-7 pr-2 py-1 text-xs border border-slate-200 rounded bg-slate-50 focus:bg-white focus:ring-1 focus:ring-teal-500 outline-none">
+        <svg class="w-3 h-3 absolute left-2 top-1.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       </div>
-      <button class="urgent-btn" id="urgent-btn">
-        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <button id="urgent-btn" class="flex items-center px-2 py-1 text-xs rounded border bg-white text-slate-500 border-slate-200">
+        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         緊急のみ
       </button>
     </div>
-  </header>
+  </div>
 
-  <div class="task-list" id="task-list">
-    <div class="loading">読み込み中...</div>
+  <!-- Task List -->
+  <div id="task-list" class="flex-1 overflow-y-auto p-2 space-y-3">
+    <div class="flex flex-col items-center justify-center py-10 text-slate-400">
+      <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-slate-400"></div>
+    </div>
   </div>
 
   <script>
@@ -396,7 +63,6 @@
     let urgentOnly = false;
     let searchText = '';
 
-    // Elements
     const taskList = document.getElementById('task-list');
     const pendingBadge = document.getElementById('pending-badge');
     const searchBtn = document.getElementById('search-btn');
@@ -405,23 +71,33 @@
     const searchInput = document.getElementById('search-input');
     const urgentBtn = document.getElementById('urgent-btn');
 
-    // Event Listeners
     searchBtn.onclick = () => {
       showSearch = !showSearch;
-      searchBtn.classList.toggle('active', showSearch);
-      filterRow.classList.toggle('show', showSearch || urgentOnly || searchText);
+      searchBtn.classList.toggle('bg-slate-100', showSearch);
+      searchBtn.classList.toggle('text-teal-600', showSearch);
+      filterRow.classList.toggle('hidden', !showSearch && !urgentOnly && !searchText);
+      filterRow.classList.toggle('flex', showSearch || urgentOnly || searchText);
     };
 
     historyBtn.onclick = () => {
       showHistory = !showHistory;
-      historyBtn.classList.toggle('active', showHistory);
-      historyBtn.textContent = showHistory ? '未完了へ' : '履歴';
+      if (showHistory) {
+        historyBtn.className = 'px-2 py-1 text-xs rounded border transition-colors ml-1 bg-slate-700 text-white border-slate-700';
+        historyBtn.textContent = '未完了へ';
+      } else {
+        historyBtn.className = 'px-2 py-1 text-xs rounded border transition-colors ml-1 bg-white text-slate-500 border-slate-200';
+        historyBtn.textContent = '履歴';
+      }
       render();
     };
 
     urgentBtn.onclick = () => {
       urgentOnly = !urgentOnly;
-      urgentBtn.classList.toggle('active', urgentOnly);
+      if (urgentOnly) {
+        urgentBtn.className = 'flex items-center px-2 py-1 text-xs rounded border bg-red-50 text-red-600 border-red-200 font-bold';
+      } else {
+        urgentBtn.className = 'flex items-center px-2 py-1 text-xs rounded border bg-white text-slate-500 border-slate-200';
+      }
       render();
     };
 
@@ -442,14 +118,14 @@
         allQuestions = result.data || [];
         render();
       } catch (e) {
-        taskList.innerHTML = `<div class="empty"><p>${e.message}</p></div>`;
+        taskList.innerHTML = `<div class="flex flex-col items-center justify-center py-10 text-slate-400"><p class="text-xs">${e.message}</p></div>`;
       }
     }
 
     function render() {
       const pending = allQuestions.filter(q => q.status === 'pending').length;
       pendingBadge.textContent = pending;
-      pendingBadge.style.display = pending > 0 ? 'inline' : 'none';
+      pendingBadge.classList.toggle('hidden', pending === 0);
 
       let list = allQuestions.filter(q => {
         const statusMatch = showHistory ? q.status === 'answered' : q.status === 'pending';
@@ -464,12 +140,20 @@
       });
 
       if (list.length === 0) {
-        const icon = searchText
-          ? '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>'
-          : '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
-        const msg = searchText ? '条件に一致するものがありません' : (showHistory ? '履歴はありません' : 'すべて完了しました');
-        const sub = !showHistory && !searchText ? 'Good Job!' : '';
-        taskList.innerHTML = `<div class="empty">${icon}<p>${msg}</p>${sub ? `<small>${sub}</small>` : ''}</div>`;
+        if (searchText) {
+          taskList.innerHTML = `
+            <div class="flex flex-col items-center justify-center h-full text-slate-400 py-10">
+              <svg class="w-8 h-8 mb-2 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <p class="text-xs">条件に一致するものがありません</p>
+            </div>`;
+        } else {
+          taskList.innerHTML = `
+            <div class="flex flex-col items-center justify-center h-full text-slate-400 py-10">
+              <svg class="w-12 h-12 mb-3 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              <p class="text-sm font-medium">${showHistory ? '履歴はありません' : 'すべて完了しました'}</p>
+              ${!showHistory ? '<p class="text-xs opacity-60 mt-1">Good Job!</p>' : ''}
+            </div>`;
+        }
         return;
       }
 
@@ -480,50 +164,67 @@
         if (showHistory) {
           const answer = (q.answers && q.answers[0]) ? q.answers[0].answer_content : '確認済み';
           return `
-            <div class="history-card">
-              <div class="history-header">
-                <span class="time">${time}</span>
-                <span class="done-tag">完了</span>
+            <div class="bg-slate-50 rounded-lg border border-slate-200 p-3 opacity-70">
+              <div class="flex justify-between mb-1">
+                <span class="text-xs text-slate-400">${time}</span>
+                <span class="text-[10px] bg-green-100 text-green-700 px-1 rounded border border-green-200">完了</span>
               </div>
-              <p class="history-text">${esc(q.question_content)}</p>
-              <div class="history-answer"><strong>回答:</strong>${esc(answer)}</div>
-            </div>
-          `;
+              <p class="text-sm text-slate-600 mb-2">${esc(q.question_content)}</p>
+              <div class="text-xs bg-white p-2 rounded border border-slate-100">
+                <span class="font-bold text-slate-500 mr-1">回答:</span>${esc(answer)}
+              </div>
+            </div>`;
         }
 
         return `
-          <div class="task-card ${isUrgent ? 'urgent' : ''}" id="card-${q.question_id}">
-            <div class="task-main">
-              <div class="task-header">
-                <div class="task-badges">
-                  ${isUrgent ? '<span class="urgent-tag"><svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> 緊急</span>' : ''}
-                  <span class="time">${time}</span>
+          <div id="card-${q.question_id}" class="bg-white rounded-lg border shadow-sm transition-all duration-300 ${isUrgent ? 'border-l-4 border-l-red-500' : 'border-l-4 border-l-blue-400'}">
+            <div class="p-3">
+              <div class="flex justify-between items-start mb-2">
+                <div class="flex items-center gap-2">
+                  ${isUrgent ? `<span class="flex items-center text-[10px] font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded"><svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>緊急</span>` : ''}
+                  <span class="text-xs text-slate-400">${time}</span>
                 </div>
               </div>
-              <p class="task-text">${esc(q.question_content)}</p>
-              <div class="task-meta">${esc(q.user_name || q.user_id)} · ${esc(q.patient_id)}</div>
-              <div class="quick-actions">
-                <div class="chips">
-                  <button class="chip" onclick="reply('${q.question_id}','了解')">了解</button>
-                  <button class="chip" onclick="reply('${q.question_id}','処方済')">処方済</button>
-                  <button class="chip" onclick="reply('${q.question_id}','後で確認')">後で確認</button>
+              <p class="text-sm text-slate-900 font-medium mb-3 whitespace-pre-wrap leading-snug">${esc(q.question_content)}</p>
+              <div class="text-xs text-slate-400 mb-2">${esc(q.user_name || q.user_id)} · ${esc(q.patient_id)}</div>
+              <div class="flex flex-col gap-2">
+                <div class="flex flex-wrap gap-2">
+                  <button onclick="reply('${q.question_id}','了解')" class="px-3 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full border border-slate-200 transition-colors">了解</button>
+                  <button onclick="reply('${q.question_id}','処方済')" class="px-3 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full border border-slate-200 transition-colors">処方済</button>
+                  <button onclick="reply('${q.question_id}','後で確認')" class="px-3 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full border border-slate-200 transition-colors">後で確認</button>
                 </div>
-                <div class="reply-row">
-                  <input type="text" id="input-${q.question_id}" placeholder="返信を入力...">
-                  <button class="send-btn" onclick="customReply('${q.question_id}')">
-                    <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                <div class="flex gap-2 mt-1">
+                  <input id="input-${q.question_id}" type="text" placeholder="返信を入力..." class="flex-1 bg-slate-50 border border-slate-200 rounded px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 focus:bg-white outline-none transition-all">
+                  <button onclick="customReply('${q.question_id}')" class="reply-btn px-3 py-1.5 rounded text-white text-xs font-bold shadow-sm flex items-center transition-colors bg-slate-400 hover:bg-slate-500" data-id="${q.question_id}">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                   </button>
                 </div>
               </div>
             </div>
-          </div>
-        `;
+          </div>`;
       }).join('');
+
+      // Add input listeners to change button style
+      document.querySelectorAll('[id^="input-"]').forEach(input => {
+        input.addEventListener('input', (e) => {
+          const id = e.target.id.replace('input-', '');
+          const btn = document.querySelector(`[data-id="${id}"]`);
+          if (e.target.value) {
+            btn.className = 'reply-btn px-3 py-1.5 rounded text-white text-xs font-bold shadow-sm flex items-center transition-colors bg-blue-600 hover:bg-blue-700';
+            btn.innerHTML = '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
+          } else {
+            btn.className = 'reply-btn px-3 py-1.5 rounded text-white text-xs font-bold shadow-sm flex items-center transition-colors bg-slate-400 hover:bg-slate-500';
+            btn.innerHTML = '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+          }
+        });
+      });
     }
 
     async function reply(id, msg) {
       const card = document.getElementById(`card-${id}`);
-      if (card) card.classList.add('sending');
+      if (card) {
+        card.classList.add('animate-pulse', 'opacity-50');
+      }
       try {
         const res = await fetch(`${SUPABASE_URL}/functions/v1/save-question`, {
           method: 'POST',
@@ -535,7 +236,7 @@
         await loadTasks();
       } catch (e) {
         alert('エラー: ' + e.message);
-        if (card) card.classList.remove('sending');
+        if (card) card.classList.remove('animate-pulse', 'opacity-50');
       }
     }
 
