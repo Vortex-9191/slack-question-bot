@@ -3,50 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quick Board</title>
+  <title>質問管理ボード</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
-  </style>
 </head>
 <body class="bg-slate-100 min-h-screen font-sans text-slate-900">
 
-  <!-- Header -->
-  <div class="bg-white border-b border-slate-200 px-3 py-2 sticky top-0 z-10 shadow-sm">
-    <div class="flex justify-between items-center h-8 mb-2">
-      <div class="flex items-center gap-2">
-        <div class="bg-teal-600 p-1 rounded text-white">
-          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-        </div>
-        <h2 class="text-sm font-bold text-slate-800">Quick Board</h2>
-        <span id="pending-badge" class="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden">0</span>
-      </div>
-      <div class="flex items-center gap-1">
-        <button id="search-btn" class="p-1.5 rounded transition-colors text-slate-400 hover:bg-slate-50">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        </button>
-        <button id="history-btn" class="px-2 py-1 text-xs rounded border transition-colors ml-1 bg-white text-slate-500 border-slate-200">
-          履歴
-        </button>
-      </div>
+  <!-- Main Toolbar -->
+  <div class="bg-white border-b border-slate-200 px-4 py-3 sticky top-0 z-10 shadow-sm">
+    <div class="flex justify-between items-center mb-3">
+      <h2 class="text-sm font-bold text-slate-800 flex items-center">
+        <svg class="w-4 h-4 mr-2 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+        質問管理ボード
+      </h2>
+      <button id="history-btn" class="flex items-center px-2 py-1 text-xs rounded border transition-colors bg-white text-slate-500 border-slate-200">
+        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        対応履歴
+      </button>
     </div>
 
-    <!-- Filter Controls -->
-    <div id="filter-row" class="hidden gap-2 items-center mb-1">
-      <div class="relative flex-1">
-        <input id="search-input" type="text" placeholder="キーワード検索..." class="w-full pl-7 pr-2 py-1 text-xs border border-slate-200 rounded bg-slate-50 focus:bg-white focus:ring-1 focus:ring-teal-500 outline-none">
-        <svg class="w-3 h-3 absolute left-2 top-1.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      </div>
-      <button id="urgent-btn" class="flex items-center px-2 py-1 text-xs rounded border bg-white text-slate-500 border-slate-200">
-        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        緊急のみ
+    <!-- Filter Tabs -->
+    <div id="filter-tabs" class="flex p-1 bg-slate-100 rounded-lg">
+      <button id="filter-mine" class="flex-1 flex items-center justify-center py-1.5 text-xs rounded-md transition-all font-medium bg-white text-teal-700 shadow-sm">
+        自分宛て
+        <span id="my-badge" class="ml-1.5 bg-red-500 text-white text-[10px] px-1.5 rounded-full hidden">0</span>
+      </button>
+      <button id="filter-all" class="flex-1 flex items-center justify-center py-1.5 text-xs rounded-md transition-all font-medium text-slate-500 hover:text-slate-700">
+        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        すべての質問
       </button>
     </div>
   </div>
 
   <!-- Task List -->
-  <div id="task-list" class="flex-1 overflow-y-auto p-2 space-y-3">
+  <div id="task-list" class="flex-1 overflow-y-auto p-3 space-y-3">
     <div class="flex flex-col items-center justify-center py-10 text-slate-400">
       <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-slate-400"></div>
     </div>
@@ -59,50 +48,40 @@
     const doctorId = window.location.pathname.split('/').pop();
     let allQuestions = [];
     let showHistory = false;
-    let showSearch = false;
-    let urgentOnly = false;
-    let searchText = '';
+    let showAllDoctors = false;
 
     const taskList = document.getElementById('task-list');
-    const pendingBadge = document.getElementById('pending-badge');
-    const searchBtn = document.getElementById('search-btn');
     const historyBtn = document.getElementById('history-btn');
-    const filterRow = document.getElementById('filter-row');
-    const searchInput = document.getElementById('search-input');
-    const urgentBtn = document.getElementById('urgent-btn');
-
-    searchBtn.onclick = () => {
-      showSearch = !showSearch;
-      searchBtn.classList.toggle('bg-slate-100', showSearch);
-      searchBtn.classList.toggle('text-teal-600', showSearch);
-      filterRow.classList.toggle('hidden', !showSearch && !urgentOnly && !searchText);
-      filterRow.classList.toggle('flex', showSearch || urgentOnly || searchText);
-    };
+    const filterTabs = document.getElementById('filter-tabs');
+    const filterMine = document.getElementById('filter-mine');
+    const filterAll = document.getElementById('filter-all');
+    const myBadge = document.getElementById('my-badge');
 
     historyBtn.onclick = () => {
       showHistory = !showHistory;
       if (showHistory) {
-        historyBtn.className = 'px-2 py-1 text-xs rounded border transition-colors ml-1 bg-slate-700 text-white border-slate-700';
-        historyBtn.textContent = '未完了へ';
+        historyBtn.className = 'flex items-center px-2 py-1 text-xs rounded border transition-colors bg-slate-700 text-white border-slate-700';
+        historyBtn.innerHTML = `<svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>未対応へ戻る`;
+        filterTabs.classList.add('hidden');
       } else {
-        historyBtn.className = 'px-2 py-1 text-xs rounded border transition-colors ml-1 bg-white text-slate-500 border-slate-200';
-        historyBtn.textContent = '履歴';
+        historyBtn.className = 'flex items-center px-2 py-1 text-xs rounded border transition-colors bg-white text-slate-500 border-slate-200';
+        historyBtn.innerHTML = `<svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>対応履歴`;
+        filterTabs.classList.remove('hidden');
       }
       render();
     };
 
-    urgentBtn.onclick = () => {
-      urgentOnly = !urgentOnly;
-      if (urgentOnly) {
-        urgentBtn.className = 'flex items-center px-2 py-1 text-xs rounded border bg-red-50 text-red-600 border-red-200 font-bold';
-      } else {
-        urgentBtn.className = 'flex items-center px-2 py-1 text-xs rounded border bg-white text-slate-500 border-slate-200';
-      }
+    filterMine.onclick = () => {
+      showAllDoctors = false;
+      filterMine.className = 'flex-1 flex items-center justify-center py-1.5 text-xs rounded-md transition-all font-medium bg-white text-teal-700 shadow-sm';
+      filterAll.className = 'flex-1 flex items-center justify-center py-1.5 text-xs rounded-md transition-all font-medium text-slate-500 hover:text-slate-700';
       render();
     };
 
-    searchInput.oninput = (e) => {
-      searchText = e.target.value.toLowerCase();
+    filterAll.onclick = () => {
+      showAllDoctors = true;
+      filterAll.className = 'flex-1 flex items-center justify-center py-1.5 text-xs rounded-md transition-all font-medium bg-white text-slate-800 shadow-sm';
+      filterMine.className = 'flex-1 flex items-center justify-center py-1.5 text-xs rounded-md transition-all font-medium text-slate-500 hover:text-slate-700';
       render();
     };
 
@@ -123,98 +102,103 @@
     }
 
     function render() {
-      const pending = allQuestions.filter(q => q.status === 'pending').length;
-      pendingBadge.textContent = pending;
-      pendingBadge.classList.toggle('hidden', pending === 0);
+      // Count my pending
+      const myPending = allQuestions.filter(q => q.status === 'pending').length;
+      myBadge.textContent = myPending;
+      myBadge.classList.toggle('hidden', myPending === 0);
 
+      // Filter
       let list = allQuestions.filter(q => {
         const statusMatch = showHistory ? q.status === 'answered' : q.status === 'pending';
-        if (!statusMatch) return false;
-        if (urgentOnly && q.question_type !== 'urgent' && !q.is_urgent) return false;
-        if (searchText) {
-          const inText = (q.question_content || '').toLowerCase().includes(searchText);
-          const inAnswer = (q.answers || []).some(a => (a.answer_content || '').toLowerCase().includes(searchText));
-          if (!inText && !inAnswer) return false;
-        }
-        return true;
+        return statusMatch;
       });
 
       if (list.length === 0) {
-        if (searchText) {
-          taskList.innerHTML = `
-            <div class="flex flex-col items-center justify-center h-full text-slate-400 py-10">
-              <svg class="w-8 h-8 mb-2 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-              <p class="text-xs">条件に一致するものがありません</p>
-            </div>`;
-        } else {
-          taskList.innerHTML = `
-            <div class="flex flex-col items-center justify-center h-full text-slate-400 py-10">
-              <svg class="w-12 h-12 mb-3 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-              <p class="text-sm font-medium">${showHistory ? '履歴はありません' : 'すべて完了しました'}</p>
-              ${!showHistory ? '<p class="text-xs opacity-60 mt-1">Good Job!</p>' : ''}
-            </div>`;
-        }
+        taskList.innerHTML = `
+          <div class="flex flex-col items-center justify-center h-full text-slate-400 py-10">
+            <svg class="w-12 h-12 mb-3 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <p class="text-sm font-medium">${showHistory ? '履歴はありません' : '未対応はありません'}</p>
+            ${!showHistory ? '<p class="text-xs opacity-60 mt-1">休憩しましょう</p>' : ''}
+          </div>`;
         return;
       }
 
       taskList.innerHTML = list.map(q => {
         const isUrgent = q.question_type === 'urgent' || q.is_urgent;
         const time = q.created_at ? new Date(q.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : '';
+        const doctorName = q.doctor_name || q.doctor_id || '担当なし';
 
         if (showHistory) {
           const answer = (q.answers && q.answers[0]) ? q.answers[0].answer_content : '確認済み';
           return `
             <div class="bg-slate-50 rounded-lg border border-slate-200 p-3 opacity-70">
               <div class="flex justify-between mb-1">
-                <span class="text-xs text-slate-400">${time}</span>
+                <span class="text-[10px] text-slate-400 flex items-center gap-1">
+                  ${time}
+                  <svg class="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                  ${esc(doctorName)}
+                </span>
                 <span class="text-[10px] bg-green-100 text-green-700 px-1 rounded border border-green-200">完了</span>
               </div>
               <p class="text-sm text-slate-600 mb-2">${esc(q.question_content)}</p>
               <div class="text-xs bg-white p-2 rounded border border-slate-100">
-                <span class="font-bold text-slate-500 mr-1">回答:</span>${esc(answer)}
+                <span class="font-bold text-teal-600 mr-1">回答:</span>${esc(answer)}
               </div>
             </div>`;
         }
 
         return `
-          <div id="card-${q.question_id}" class="bg-white rounded-lg border shadow-sm transition-all duration-300 ${isUrgent ? 'border-l-4 border-l-red-500' : 'border-l-4 border-l-blue-400'}">
+          <div id="card-${q.question_id}" class="bg-white rounded-lg border shadow-sm transition-all duration-300 ${isUrgent ? 'border-l-4 border-l-red-500' : 'border-l-4 border-l-slate-300'}">
             <div class="p-3">
-              <div class="flex justify-between items-start mb-2">
+              <!-- Header -->
+              <div class="flex justify-between items-center mb-2">
                 <div class="flex items-center gap-2">
-                  ${isUrgent ? `<span class="flex items-center text-[10px] font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded"><svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>緊急</span>` : ''}
-                  <span class="text-xs text-slate-400">${time}</span>
+                  <span class="text-[10px] px-2 py-0.5 rounded font-medium bg-blue-100 text-blue-800">
+                    To: ${esc(doctorName)}
+                  </span>
+                  ${isUrgent ? `<span class="flex items-center text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-100"><svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>緊急</span>` : ''}
                 </div>
+                <span class="text-xs text-slate-400">${time}</span>
               </div>
-              <p class="text-sm text-slate-900 font-medium mb-3 whitespace-pre-wrap leading-snug">${esc(q.question_content)}</p>
+
+              <!-- Question -->
+              <div class="mb-3">
+                <p class="text-xs text-slate-500 mb-0.5">患者質問:</p>
+                <p class="text-sm text-slate-900 font-medium whitespace-pre-wrap leading-snug">${esc(q.question_content)}</p>
+              </div>
               <div class="text-xs text-slate-400 mb-2">${esc(q.user_name || q.user_id)} · ${esc(q.patient_id)}</div>
-              <div class="flex flex-col gap-2">
-                <div class="flex flex-wrap gap-2">
-                  <button onclick="reply('${q.question_id}','了解')" class="px-3 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full border border-slate-200 transition-colors">了解</button>
-                  <button onclick="reply('${q.question_id}','処方済')" class="px-3 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full border border-slate-200 transition-colors">処方済</button>
-                  <button onclick="reply('${q.question_id}','後で確認')" class="px-3 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full border border-slate-200 transition-colors">後で確認</button>
-                </div>
-                <div class="flex gap-2 mt-1">
-                  <input id="input-${q.question_id}" type="text" placeholder="返信を入力..." class="flex-1 bg-slate-50 border border-slate-200 rounded px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-400 focus:bg-white outline-none transition-all">
+
+              <!-- Actions -->
+              <div class="flex flex-col gap-2 pt-2 border-t border-slate-100">
+                <div class="flex gap-2">
+                  <input id="input-${q.question_id}" type="text" placeholder="回答を入力して返信..." class="flex-1 bg-slate-50 border border-slate-200 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:bg-white outline-none transition-all">
                   <button onclick="customReply('${q.question_id}')" class="reply-btn px-3 py-1.5 rounded text-white text-xs font-bold shadow-sm flex items-center transition-colors bg-slate-400 hover:bg-slate-500" data-id="${q.question_id}">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                   </button>
+                </div>
+
+                <!-- Quick Chips -->
+                <div class="flex gap-2 overflow-x-auto pb-1">
+                  <button onclick="reply('${q.question_id}','次回診察時にお話しします')" class="whitespace-nowrap px-2 py-1 text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 rounded border border-slate-200 transition-colors">次回診察時にお話しします</button>
+                  <button onclick="reply('${q.question_id}','お薬手帳を持参ください')" class="whitespace-nowrap px-2 py-1 text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 rounded border border-slate-200 transition-colors">お薬手帳を持参ください</button>
+                  <button onclick="reply('${q.question_id}','電話で説明します')" class="whitespace-nowrap px-2 py-1 text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 rounded border border-slate-200 transition-colors">電話で説明します</button>
                 </div>
               </div>
             </div>
           </div>`;
       }).join('');
 
-      // Add input listeners to change button style
+      // Input listeners for button style change
       document.querySelectorAll('[id^="input-"]').forEach(input => {
         input.addEventListener('input', (e) => {
           const id = e.target.id.replace('input-', '');
           const btn = document.querySelector(`[data-id="${id}"]`);
           if (e.target.value) {
-            btn.className = 'reply-btn px-3 py-1.5 rounded text-white text-xs font-bold shadow-sm flex items-center transition-colors bg-blue-600 hover:bg-blue-700';
-            btn.innerHTML = '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
+            btn.className = 'reply-btn px-3 py-1.5 rounded text-white text-xs font-bold shadow-sm flex items-center transition-colors bg-teal-600 hover:bg-teal-700';
+            btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
           } else {
             btn.className = 'reply-btn px-3 py-1.5 rounded text-white text-xs font-bold shadow-sm flex items-center transition-colors bg-slate-400 hover:bg-slate-500';
-            btn.innerHTML = '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+            btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
           }
         });
       });
@@ -222,9 +206,7 @@
 
     async function reply(id, msg) {
       const card = document.getElementById(`card-${id}`);
-      if (card) {
-        card.classList.add('animate-pulse', 'opacity-50');
-      }
+      if (card) card.classList.add('animate-pulse', 'opacity-50');
       try {
         const res = await fetch(`${SUPABASE_URL}/functions/v1/save-question`, {
           method: 'POST',
@@ -242,7 +224,7 @@
 
     function customReply(id) {
       const input = document.getElementById(`input-${id}`);
-      const msg = input.value.trim() || '確認しました';
+      const msg = input.value.trim() || '回答しました';
       reply(id, msg);
     }
 
