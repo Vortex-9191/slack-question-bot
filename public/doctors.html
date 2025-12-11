@@ -9,6 +9,12 @@
     // 認証チェック - ログインしていなければリダイレクト
     if (!Auth.isLoggedIn()) {
       window.location.href = '/login.html?return=' + encodeURIComponent(window.location.pathname);
+    } else {
+      // ログイン済みなら自分のページへリダイレクト
+      const myDoctorId = Auth.getDoctorId();
+      if (myDoctorId) {
+        window.location.href = '/doctor/' + myDoctorId;
+      }
     }
   </script>
   <style>

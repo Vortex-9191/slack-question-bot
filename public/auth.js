@@ -190,5 +190,18 @@ const Auth = {
       return false;
     }
     return true;
+  },
+
+  // Get doctor_id from email (part before @)
+  getDoctorId() {
+    const user = this.getUser();
+    if (!user?.email) return null;
+    return user.email.split('@')[0];
+  },
+
+  // Get user email
+  getEmail() {
+    const user = this.getUser();
+    return user?.email || null;
   }
 };

@@ -9,6 +9,14 @@
     // 認証チェック - ログインしていなければリダイレクト
     if (!Auth.isLoggedIn()) {
       window.location.href = '/login.html?return=' + encodeURIComponent(window.location.pathname);
+    } else {
+      // 自分のdoctor_idと一致するかチェック
+      const urlDoctorId = window.location.pathname.split('/').pop();
+      const myDoctorId = Auth.getDoctorId();
+      if (myDoctorId && urlDoctorId !== myDoctorId) {
+        // 他人のページにアクセスしようとした場合、自分のページへリダイレクト
+        window.location.href = '/doctor/' + myDoctorId;
+      }
     }
   </script>
   <script src="https://cdn.tailwindcss.com"></script>
