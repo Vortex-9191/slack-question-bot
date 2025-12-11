@@ -4,6 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>質問管理ボード</title>
+  <script src="/auth.js"></script>
+  <script>
+    // 認証チェック - ログインしていなければリダイレクト
+    if (!Auth.isLoggedIn()) {
+      window.location.href = '/login.html?return=' + encodeURIComponent(window.location.pathname);
+    }
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-100 min-h-screen font-sans text-slate-900">
@@ -15,10 +22,15 @@
         <svg class="w-4 h-4 mr-2 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
         質問管理ボード
       </h2>
-      <button id="history-btn" class="flex items-center px-2 py-1 text-xs rounded border transition-colors bg-white text-slate-500 border-slate-200">
-        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        対応履歴
-      </button>
+      <div class="flex gap-2">
+        <button id="history-btn" class="flex items-center px-2 py-1 text-xs rounded border transition-colors bg-white text-slate-500 border-slate-200">
+          <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          対応履歴
+        </button>
+        <button onclick="logout()" class="flex items-center px-2 py-1 text-xs rounded border transition-colors bg-white text-slate-500 border-slate-200 hover:bg-slate-50">
+          ログアウト
+        </button>
+      </div>
     </div>
 
     <!-- Filter Tabs -->
@@ -237,6 +249,11 @@
 
     loadTasks();
     setInterval(loadTasks, 30000);
+
+    function logout() {
+      Auth.signOut();
+      window.location.href = '/login.html';
+    }
   </script>
 </body>
 </html>
